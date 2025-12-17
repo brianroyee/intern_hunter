@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const { createClient } = require('@libsql/client');
 
 const app = express();
@@ -277,6 +279,82 @@ app.get('/api/blogs/:id', async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- SOCIAL SHARING: Handle Blog Page Requests with Meta Tags ---
+app.get('/blogs/:id', async (req, res) => {
+  try {
+    if (!dbInitialized) await initDB();
+    if (!db) return res.status(500).send('Database Error');
+
+    const { id } = req.params;
+    
+    // 1. Fetch blog data
+    const result = await db.execute({
+        sql: 'SELECT title, excerpt FROM blog_posts WHERE id = ?',
+        args: [id]
+    });
+
+    if (result.rows.length === 0) {
+      // Fallback to normal index.html if blog not found
+      return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+    }
+
+    const post = result.rows[0];
+    const title = post.title;
+    const description = post.excerpt || "Check out this log entry on INTERN_OS";
+    
+    // Construct absolute image URL
+    // Vercel apps usually have the domain in req.headers.host
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const imageUrl = `${protocol}://${host}/api/blogs/${id}/image`;
+    const pageUrl = `${protocol}://${host}/blogs/${id}`;
+
+    // 2. Read index.html
+    // In Vercel environment, the built files are in /var/task/dist or similar. 
+    // Usually path.join(process.cwd(), 'dist', 'index.html') works.
+    let htmlPath = path.join(process.cwd(), 'dist', 'index.html');
+    if (!fs.existsSync(htmlPath)) {
+        // Fallback for local dev if dist doesn't exist
+        htmlPath = path.join(process.cwd(), 'index.html');
+    }
+
+    let html = fs.readFileSync(htmlPath, 'utf8');
+
+    // 3. Inject Meta Tags
+    const metaTags = `
+    <!-- Primary Meta Tags -->
+    <title>${title} | INTERN_OS</title>
+    <meta name="title" content="${title} | INTERN_OS">
+    <meta name="description" content="${description}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="${pageUrl}">
+    <meta property="twitter:title" content="${title}">
+    <meta property="twitter:description" content="${description}">
+    <meta property="twitter:image" content="${imageUrl}">
+    `;
+
+    // Insert meta tags before </head>
+    html = html.replace('</head>', `${metaTags}</head>`);
+
+    // 4. Send response
+    res.send(html);
+
+  } catch (error) {
+    console.error('Meta Injection Error:', error);
+    // Fallback to standard index.html
+    res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
   }
 });
 

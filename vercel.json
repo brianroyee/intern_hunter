@@ -9,6 +9,10 @@
             "destination": "/api/index.js"
         },
         {
+            "source": "/blogs/:id",
+            "destination": "/api/index.js"
+        },
+        {
             "source": "/((?!api/).*)",
             "destination": "/index.html"
         }
