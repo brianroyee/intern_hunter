@@ -130,7 +130,8 @@ app.get('/api/health', (req, res) => {
     dbConnected: !!db,
     envVars: {
       TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'set' : 'missing',
-      TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'set' : 'missing'
+      TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'set' : 'missing',
+      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ? 'set' : 'missing'
     }
   });
 });
