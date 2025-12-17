@@ -39,6 +39,18 @@ async function initDB() {
         submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS blog_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        excerpt TEXT,
+        content TEXT NOT NULL,
+        author TEXT DEFAULT 'ADMIN',
+        imageBase64 TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     console.log('✓ Turso database ready');
   } catch (error) {
     console.error('DB Init Error:', error.message);
@@ -128,6 +140,51 @@ app.get('/api/applications', async (req, res) => {
       return res.status(500).json({ error: 'Database not configured' });
     }
     const result = await db.execute('SELECT id, fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, cvFilename, subscribeToNewsletter, submittedAt FROM applications ORDER BY submittedAt DESC');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API ENDPOINT: Create Blog Post ---
+app.post('/api/blogs', upload.single('image'), async (req, res) => {
+  try {
+    if (!dbInitialized) {
+      await initDB();
+      dbInitialized = true;
+    }
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+    const { title, excerpt, content, author } = req.body;
+    const file = req.file;
+
+    let imageBase64 = null;
+    if (file) {
+      imageBase64 = file.buffer.toString('base64');
+    }
+
+    const result = await db.execute({
+      sql: `INSERT INTO blog_posts (title, excerpt, content, author, imageBase64) VALUES (?, ?, ?, ?, ?)`,
+      args: [title, excerpt, content, author || 'ADMIN', imageBase64]
+    });
+
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    console.error('Blog Create Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- API ENDPOINT: Get All Blogs ---
+app.get('/api/blogs', async (req, res) => {
+  try {
+    if (!dbInitialized) {
+      await initDB();
+      dbInitialized = true;
+    }
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+    const result = await db.execute('SELECT * FROM blog_posts ORDER BY createdAt DESC');
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
