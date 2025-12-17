@@ -7,16 +7,19 @@ import {
   BrutalTextArea,
 } from "./components/BrutalComponents";
 import {
-  ArrowLeft,
-  Briefcase,
-  MapPin,
-  Globe,
-  Tag,
-  CheckCircle,
   AlertTriangle,
   GraduationCap,
   Clock,
   Building,
+  Linkedin,
+  Twitter,
+  Instagram,
+  ShieldCheck,
+  Share2,
+  CheckCircle,
+  ArrowLeft,
+  Briefcase,
+  Globe,
 } from "lucide-react";
 
 // Predefined options for dropdowns - INTERNSHIP FOCUSED
@@ -125,8 +128,183 @@ export default function PostJobPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPreview, setIsPreview] = useState(false);
 
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
+  const handlePreview = () => {
+    setError(null);
+    if (
+      !jobForm.title ||
+      !jobForm.company ||
+      !jobForm.description ||
+      !jobForm.linkedin_url
+    ) {
+      setError(
+        "Please key in required fields to preview: Title, Company, Description, LinkedIn URL."
+      );
+      window.scrollTo(0, 0);
+      return;
+    }
+    setIsPreview(true);
+    window.scrollTo(0, 0);
+  };
+
+  const renderPreview = () => {
+    // Combine tags for preview
+    const allTags = [
+      ...jobForm.selectedTags,
+      ...jobForm.customTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ];
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* WARNING BANNER */}
+        <div className="bg-red-500 text-white font-black text-center p-4 text-xl border-4 border-black animate-pulse">
+          ⚠️ PREVIEW MODE: ONCE PUBLIC, EDITS ARE RESTRICTED! ⚠️
+        </div>
+
+        {/* HERO HEADER - MIRRORING JobDetailsPage */}
+        <div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <h1 className="text-4xl md:text-6xl font-black uppercase leading-none">
+              {jobForm.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {jobForm.company_url ? (
+                <div className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-white hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit">
+                  <Globe size={18} /> {jobForm.company} Website
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-gray-200 text-gray-500 font-bold uppercase shrink-0 w-fit cursor-not-allowed">
+                  <Globe size={18} />{" "}
+                  <span className="line-through">WEBSITE</span>
+                </div>
+              )}
+              {jobForm.linkedin_url && (
+                <div className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-white hover:bg-brutal-blue hover:text-white transition-colors font-bold uppercase shrink-0 w-fit">
+                  <Linkedin size={18} /> LinkedIn
+                </div>
+              )}
+              {jobForm.twitter_url && (
+                <div className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-white hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit">
+                  <Twitter size={18} />
+                </div>
+              )}
+              {jobForm.instagram_url && (
+                <div className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-white hover:bg-pink-600 hover:text-white transition-colors font-bold uppercase shrink-0 w-fit">
+                  <Instagram size={18} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 mt-2">
+            <p className="text-xl font-bold uppercase opacity-60 flex items-center gap-2">
+              <Briefcase /> AT {jobForm.company}
+            </p>
+            <p className="text-sm font-bold opacity-40 uppercase">
+              POSTED Today
+            </p>
+          </div>
+        </div>
+
+        {/* TRANSPARENCY GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-4 border-4 border-black bg-white shadow-brutal">
+          <div className="p-4 border-b-4 md:border-b-0 md:border-r-4 border-black text-center md:text-left">
+            <p className="text-xs font-bold uppercase opacity-50 mb-1">
+              Total Comp (Cash)
+            </p>
+            <p className="text-lg md:text-2xl font-black text-green-700">
+              ₹{parseInt(jobForm.stipend_min || "0") / 1000}k - ₹
+              {parseInt(jobForm.stipend_max || "0") / 1000}k
+            </p>
+          </div>
+          <div className="p-4 border-b-4 md:border-b-0 md:border-r-4 border-black text-center md:text-left">
+            <p className="text-xs font-bold uppercase opacity-50 mb-1">
+              Equity Upside
+            </p>
+            <p className="text-lg md:text-2xl font-black text-purple-700">
+              {jobForm.equity || "N/A"}
+            </p>
+          </div>
+          <div className="p-4 border-r-4 border-black text-center md:text-left">
+            <p className="text-xs font-bold uppercase opacity-50 mb-1">
+              Location Mode
+            </p>
+            <p className="text-lg md:text-2xl font-black">
+              {jobForm.location || "Remote"}
+            </p>
+            <p className="text-sm font-bold opacity-50 uppercase">
+              {jobForm.locationType}
+            </p>
+          </div>
+          <div className="p-4 text-center md:text-left">
+            <p className="text-xs font-bold uppercase opacity-50 mb-1">
+              Verified By
+            </p>
+            <p className="text-lg md:text-2xl font-black flex items-center justify-center md:justify-start gap-2">
+              <ShieldCheck className="text-brutal-blue" /> ADMIN
+            </p>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="grid md:grid-cols-[1fr_300px] gap-8">
+          <div className="space-y-6">
+            <BrutalBox title="MISSION BRIEF" className="bg-white min-h-[400px]">
+              <div className="prose font-mono whitespace-pre-wrap">
+                {jobForm.description}
+              </div>
+            </BrutalBox>
+
+            <div className="border-4 border-black bg-gray-100 p-6">
+              <h3 className="font-bold uppercase mb-4 flex items-center gap-2 border-b-2 border-black pb-2">
+                <CheckCircle size={18} /> THE STACK / TAGS
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-black text-white px-3 py-1 font-bold uppercase text-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="space-y-4 sticky top-24 h-fit">
+            <p className="font-bold text-center opacity-50 text-sm">
+              PREVIEW ACTIONS
+            </p>
+            <BrutalButton
+              onClick={() => {
+                setIsPreview(false);
+                window.scrollTo(0, 0);
+              }}
+              className="w-full bg-white text-black border-4 border-black hover:bg-gray-100"
+            >
+              EDIT LISTING
+            </BrutalButton>
+            <BrutalButton
+              onClick={handleSubmit}
+              loading={isSubmitting}
+              className="w-full bg-brutal-green text-black hover:bg-white"
+            >
+              CONFIRM & POST
+            </BrutalButton>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -221,252 +399,244 @@ export default function PostJobPage() {
       </header>
 
       <main className="flex-grow p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-brutal-yellow border-4 border-black p-6 mb-8 shadow-brutal text-center">
-            <h1 className="text-3xl md:text-5xl font-black uppercase leading-none mb-2">
-              POST AN INTERNSHIP
-            </h1>
-            <p className="font-bold">
-              Find talented students and recent graduates for your team. Quality
-              listings only.
-            </p>
-          </div>
-
-          {error && (
-            <div className="bg-red-100 border-4 border-red-600 text-red-900 p-4 mb-6 font-bold flex items-center gap-2">
-              <AlertTriangle /> {error}
-            </div>
-          )}
-
-          <div className="bg-white border-4 border-black p-6 md:p-8 shadow-hard space-y-6">
-            <BrutalInput
-              label="Internship Title *"
-              placeholder="E.G. SOFTWARE ENGINEERING INTERN, MARKETING INTERN"
-              value={jobForm.title}
-              onChange={(e) =>
-                setJobForm({ ...jobForm, title: e.target.value })
-              }
-            />
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <BrutalInput
-                label="Company Name *"
-                placeholder="ACME CORP"
-                value={jobForm.company}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, company: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Company URL"
-                placeholder="https://acme.com"
-                value={jobForm.company_url}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, company_url: e.target.value })
-                }
-              />
+        {isPreview ? (
+          renderPreview()
+        ) : (
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-brutal-yellow border-4 border-black p-6 mb-8 shadow-brutal text-center">
+              <h1 className="text-3xl md:text-5xl font-black uppercase leading-none mb-2">
+                POST AN INTERNSHIP
+              </h1>
+              <p className="font-bold">
+                Find talented students and recent graduates for your team.
+                Quality listings only.
+              </p>
             </div>
 
-            {/* Social Media Links */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <BrutalInput
-                label="LinkedIn URL *"
-                placeholder="linkedin.com/company/..."
-                value={jobForm.linkedin_url}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, linkedin_url: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Twitter / X URL"
-                placeholder="twitter.com/..."
-                value={jobForm.twitter_url}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, twitter_url: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Instagram URL"
-                placeholder="instagram.com/..."
-                value={jobForm.instagram_url}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, instagram_url: e.target.value })
-                }
-              />
-            </div>
-
-            {/* INTERNSHIP-SPECIFIC DROPDOWNS */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Internship Type */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Internship Type *
-                </label>
-                <select
-                  value={jobForm.internshipType}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, internshipType: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {INTERNSHIP_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Duration *
-                </label>
-                <select
-                  value={jobForm.duration}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, duration: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {DURATION_OPTIONS.map((dur) => (
-                    <option key={dur} value={dur}>
-                      {dur}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Location Type */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Location Type *
-                </label>
-                <select
-                  value={jobForm.locationType}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, locationType: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {LOCATION_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Discipline */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Discipline / Department *
-                </label>
-                <select
-                  value={jobForm.discipline}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, discipline: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {DISCIPLINES.map((disc) => (
-                    <option key={disc} value={disc}>
-                      {disc}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Academic Year Target */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Target Academic Year *
-                </label>
-                <select
-                  value={jobForm.academicYear}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, academicYear: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {ACADEMIC_YEARS.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Compensation Type */}
-              <div>
-                <label className="font-bold uppercase block mb-2">
-                  Compensation Type *
-                </label>
-                <select
-                  value={jobForm.compensationType}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, compensationType: e.target.value })
-                  }
-                  className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
-                >
-                  {COMPENSATION_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Location City/Region (Optional) */}
-            <BrutalInput
-              label="Location (City/Region)"
-              placeholder="e.g., Bangalore, India or 'Worldwide'"
-              value={jobForm.location}
-              onChange={(e) =>
-                setJobForm({ ...jobForm, location: e.target.value })
-              }
-            />
-
-            {(jobForm.compensationType.includes("Stipend") ||
-              jobForm.compensationType.includes("Paid")) && (
-              <div className="grid md:grid-cols-3 gap-4">
-                <BrutalInput
-                  label="Min Stipend (₹/month)"
-                  placeholder="5000"
-                  type="number"
-                  value={jobForm.stipend_min}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, stipend_min: e.target.value })
-                  }
-                />
-                <BrutalInput
-                  label="Max Stipend (₹/month)"
-                  placeholder="25000"
-                  type="number"
-                  value={jobForm.stipend_max}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, stipend_max: e.target.value })
-                  }
-                />
-                <BrutalInput
-                  label="Equity (%)"
-                  placeholder="0.1%"
-                  value={jobForm.equity}
-                  onChange={(e) =>
-                    setJobForm({ ...jobForm, equity: e.target.value })
-                  }
-                />
+            {error && (
+              <div className="bg-red-100 border-4 border-red-600 text-red-900 p-4 mb-6 font-bold flex items-center gap-2">
+                <AlertTriangle /> {error}
               </div>
             )}
 
-            {!jobForm.compensationType.includes("Stipend") &&
-              !jobForm.compensationType.includes("Paid") && (
-                <div className="grid md:grid-cols-1 gap-4">
+            <div className="bg-white border-4 border-black p-6 md:p-8 shadow-hard space-y-6">
+              <BrutalInput
+                label="Internship Title *"
+                placeholder="E.G. SOFTWARE ENGINEERING INTERN, MARKETING INTERN"
+                value={jobForm.title}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, title: e.target.value })
+                }
+              />
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <BrutalInput
+                  label="Company Name *"
+                  placeholder="ACME CORP"
+                  value={jobForm.company}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, company: e.target.value })
+                  }
+                />
+                <BrutalInput
+                  label="Company URL"
+                  placeholder="https://acme.com"
+                  value={jobForm.company_url}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, company_url: e.target.value })
+                  }
+                />
+              </div>
+
+              {/* Social Media Links */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <BrutalInput
+                  label="LinkedIn URL *"
+                  placeholder="linkedin.com/company/..."
+                  value={jobForm.linkedin_url}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, linkedin_url: e.target.value })
+                  }
+                />
+                <BrutalInput
+                  label="Twitter / X URL"
+                  placeholder="twitter.com/..."
+                  value={jobForm.twitter_url}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, twitter_url: e.target.value })
+                  }
+                />
+                <BrutalInput
+                  label="Instagram URL"
+                  placeholder="instagram.com/..."
+                  value={jobForm.instagram_url}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, instagram_url: e.target.value })
+                  }
+                />
+              </div>
+
+              {/* INTERNSHIP-SPECIFIC DROPDOWNS */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Internship Type */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Internship Type *
+                  </label>
+                  <select
+                    value={jobForm.internshipType}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, internshipType: e.target.value })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {INTERNSHIP_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Duration *
+                  </label>
+                  <select
+                    value={jobForm.duration}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, duration: e.target.value })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {DURATION_OPTIONS.map((dur) => (
+                      <option key={dur} value={dur}>
+                        {dur}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Location Type */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Location Type *
+                  </label>
+                  <select
+                    value={jobForm.locationType}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, locationType: e.target.value })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {LOCATION_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Discipline */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Discipline / Department *
+                  </label>
+                  <select
+                    value={jobForm.discipline}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, discipline: e.target.value })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {DISCIPLINES.map((disc) => (
+                      <option key={disc} value={disc}>
+                        {disc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Academic Year Target */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Target Academic Year *
+                  </label>
+                  <select
+                    value={jobForm.academicYear}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, academicYear: e.target.value })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {ACADEMIC_YEARS.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Compensation Type */}
+                <div>
+                  <label className="font-bold uppercase block mb-2">
+                    Compensation Type *
+                  </label>
+                  <select
+                    value={jobForm.compensationType}
+                    onChange={(e) =>
+                      setJobForm({
+                        ...jobForm,
+                        compensationType: e.target.value,
+                      })
+                    }
+                    className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue bg-white"
+                  >
+                    {COMPENSATION_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Location City/Region (Optional) */}
+              <BrutalInput
+                label="Location (City/Region)"
+                placeholder="e.g., Bangalore, India or 'Worldwide'"
+                value={jobForm.location}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, location: e.target.value })
+                }
+              />
+
+              {(jobForm.compensationType.includes("Stipend") ||
+                jobForm.compensationType.includes("Paid")) && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <BrutalInput
+                    label="Min Stipend (₹/month)"
+                    placeholder="5000"
+                    type="number"
+                    value={jobForm.stipend_min}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, stipend_min: e.target.value })
+                    }
+                  />
+                  <BrutalInput
+                    label="Max Stipend (₹/month)"
+                    placeholder="25000"
+                    type="number"
+                    value={jobForm.stipend_max}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, stipend_max: e.target.value })
+                    }
+                  />
                   <BrutalInput
                     label="Equity (%)"
                     placeholder="0.1%"
@@ -478,83 +648,100 @@ export default function PostJobPage() {
                 </div>
               )}
 
-            {/* TAGS - Checkbox MCQ */}
-            <div>
-              <label className="font-bold uppercase block mb-2">
-                Skills / Tags (Select All That Apply)
-              </label>
-              <div className="flex flex-wrap gap-2 border-4 border-black p-4 bg-gray-50">
-                {COMMON_TAGS.map((tag) => (
-                  <label
-                    key={tag}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={jobForm.selectedTags.includes(tag)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setJobForm({
-                            ...jobForm,
-                            selectedTags: [...jobForm.selectedTags, tag],
-                          });
-                        } else {
-                          setJobForm({
-                            ...jobForm,
-                            selectedTags: jobForm.selectedTags.filter(
-                              (t) => t !== tag
-                            ),
-                          });
-                        }
-                      }}
-                      className="w-5 h-5 accent-black"
+              {!jobForm.compensationType.includes("Stipend") &&
+                !jobForm.compensationType.includes("Paid") && (
+                  <div className="grid md:grid-cols-1 gap-4">
+                    <BrutalInput
+                      label="Equity (%)"
+                      placeholder="0.1%"
+                      value={jobForm.equity}
+                      onChange={(e) =>
+                        setJobForm({ ...jobForm, equity: e.target.value })
+                      }
                     />
-                    <span className="font-mono text-sm border border-black px-2 py-1 bg-white">
-                      {tag}
-                    </span>
-                  </label>
-                ))}
+                  </div>
+                )}
+
+              {/* TAGS - Checkbox MCQ */}
+              <div>
+                <label className="font-bold uppercase block mb-2">
+                  Skills / Tags (Select All That Apply)
+                </label>
+                <div className="flex flex-wrap gap-2 border-4 border-black p-4 bg-gray-50">
+                  {COMMON_TAGS.map((tag) => (
+                    <label
+                      key={tag}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={jobForm.selectedTags.includes(tag)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setJobForm({
+                              ...jobForm,
+                              selectedTags: [...jobForm.selectedTags, tag],
+                            });
+                          } else {
+                            setJobForm({
+                              ...jobForm,
+                              selectedTags: jobForm.selectedTags.filter(
+                                (t) => t !== tag
+                              ),
+                            });
+                          }
+                        }}
+                        className="w-5 h-5 accent-black"
+                      />
+                      <span className="font-mono text-sm border border-black px-2 py-1 bg-white">
+                        {tag}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Tags */}
+              <BrutalInput
+                label="Other Tags (Comma Separated)"
+                placeholder="e.g., Rust, Blockchain, Growth"
+                value={jobForm.customTags}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, customTags: e.target.value })
+                }
+              />
+
+              <BrutalInput
+                label="Application URL / Email"
+                placeholder="https://... or mailto:..."
+                value={jobForm.apply_url}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, apply_url: e.target.value })
+                }
+              />
+
+              <BrutalTextArea
+                label="Internship Description *"
+                placeholder="Describe what the intern will learn and do. What skills will they develop? What projects will they work on?"
+                className="min-h-[200px]"
+                value={jobForm.description}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, description: e.target.value })
+                }
+              />
+
+              <div className="flex gap-4">
+                <BrutalButton
+                  onClick={handlePreview}
+                  className="flex-1 text-xl py-4 bg-white text-black border-black hover:bg-gray-100"
+                >
+                  PREVIEW LISTING
+                </BrutalButton>
+                {/* Note: Submit is accessible in preview, but we can keep it here too if desired, or hide it */}
               </div>
             </div>
-
-            {/* Custom Tags */}
-            <BrutalInput
-              label="Other Tags (Comma Separated)"
-              placeholder="e.g., Rust, Blockchain, Growth"
-              value={jobForm.customTags}
-              onChange={(e) =>
-                setJobForm({ ...jobForm, customTags: e.target.value })
-              }
-            />
-
-            <BrutalInput
-              label="Application URL / Email"
-              placeholder="https://... or mailto:..."
-              value={jobForm.apply_url}
-              onChange={(e) =>
-                setJobForm({ ...jobForm, apply_url: e.target.value })
-              }
-            />
-
-            <BrutalTextArea
-              label="Internship Description *"
-              placeholder="Describe what the intern will learn and do. What skills will they develop? What projects will they work on?"
-              className="min-h-[200px]"
-              value={jobForm.description}
-              onChange={(e) =>
-                setJobForm({ ...jobForm, description: e.target.value })
-              }
-            />
-
-            <BrutalButton
-              onClick={handleSubmit}
-              loading={isSubmitting}
-              className="w-full text-xl py-4 bg-black text-white hover:bg-brutal-blue hover:text-white"
-            >
-              SUBMIT FOR REVIEW
-            </BrutalButton>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
