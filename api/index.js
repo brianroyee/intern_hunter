@@ -155,4 +155,67 @@ app.get('/api/cv/:id', async (req, res) => {
   }
 });
 
+// Admin Login
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminPassword) {
+    return res.status(500).json({ success: false, error: 'Admin password not configured' });
+  }
+  
+  if (password === adminPassword) {
+    res.json({ success: true, token: 'admin-authenticated' });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+});
+
+// Delete Application (requires password)
+app.delete('/api/applications/:id', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (password !== adminPassword) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    if (!db) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+    
+    await db.execute({
+      sql: 'DELETE FROM applications WHERE id = ?',
+      args: [req.params.id]
+    });
+    
+    res.json({ success: true, message: 'Application deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete All Applications (requires password)
+app.delete('/api/applications', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (password !== adminPassword) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    if (!db) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+    
+    await db.execute('DELETE FROM applications');
+    
+    res.json({ success: true, message: 'All applications deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = app;

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { BrutalBox, BrutalButton } from "./components/BrutalComponents";
+import {
+  BrutalBox,
+  BrutalButton,
+  BrutalInput,
+} from "./components/BrutalComponents";
 import {
   Terminal,
   Users,
@@ -11,6 +15,9 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  Trash2,
+  Lock,
+  LogOut,
 } from "lucide-react";
 
 interface Application {
@@ -29,32 +36,96 @@ interface Application {
 }
 
 export default function Admin() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [storedPassword, setStoredPassword] = useState("");
+
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
+  const handleLogin = async () => {
+    setLoginError(null);
+    try {
+      const response = await fetch(`${apiBase}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsAuthenticated(true);
+        setStoredPassword(password);
+        setPassword("");
+        fetchApplications();
+      } else {
+        setLoginError(data.error || "Invalid password");
+      }
+    } catch (err) {
+      setLoginError("Failed to authenticate");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setStoredPassword("");
+    setApplications([]);
+  };
 
   const fetchApplications = async () => {
     setLoading(true);
     setError(null);
     try {
-      const apiUrl = import.meta.env.DEV
-        ? "http://localhost:3000/api/applications"
-        : "/api/applications";
-      const response = await fetch(apiUrl);
+      const response = await fetch(`${apiBase}/api/applications`);
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setApplications(data);
     } catch (err) {
-      setError("Failed to load applications. Is the backend running?");
+      setError("Failed to load applications");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchApplications();
-  }, []);
+  const deleteApplication = async (id: number) => {
+    if (!confirm("Delete this application?")) return;
+    try {
+      const response = await fetch(`${apiBase}/api/applications/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: storedPassword }),
+      });
+      if (response.ok) {
+        setApplications(applications.filter((a) => a.id !== id));
+      } else {
+        alert("Failed to delete");
+      }
+    } catch (err) {
+      alert("Failed to delete");
+    }
+  };
+
+  const deleteAllApplications = async () => {
+    if (!confirm("DELETE ALL APPLICATIONS? This cannot be undone!")) return;
+    if (!confirm("Are you REALLY sure?")) return;
+    try {
+      const response = await fetch(`${apiBase}/api/applications`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: storedPassword }),
+      });
+      if (response.ok) {
+        setApplications([]);
+      } else {
+        alert("Failed to delete all");
+      }
+    } catch (err) {
+      alert("Failed to delete all");
+    }
+  };
 
   const parseSkills = (skills: string): string[] => {
     try {
@@ -68,6 +139,51 @@ export default function Admin() {
     return new Date(dateStr).toLocaleString();
   };
 
+  // Login Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-brutal-cream flex items-center justify-center p-4 font-mono">
+        <div className="border-8 border-black bg-white p-8 shadow-brutal max-w-md w-full">
+          <div className="text-center mb-8">
+            <Lock className="w-16 h-16 mx-auto mb-4" />
+            <h1 className="text-3xl font-black uppercase">ADMIN LOGIN</h1>
+            <p className="text-sm opacity-50 mt-2">Enter password to access</p>
+          </div>
+
+          {loginError && (
+            <div className="border-4 border-brutal-red bg-red-100 p-3 mb-4 text-center">
+              <p className="font-bold text-brutal-red">{loginError}</p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              placeholder="PASSWORD"
+              className="w-full border-4 border-black p-3 font-mono text-lg focus:outline-none focus:border-brutal-blue"
+            />
+            <BrutalButton onClick={handleLogin} className="w-full">
+              AUTHENTICATE
+            </BrutalButton>
+          </div>
+
+          <div className="mt-6 text-center">
+            <a
+              href="/"
+              className="text-sm opacity-50 hover:opacity-100 underline"
+            >
+              ← Back to Application Form
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin Dashboard
   return (
     <div className="min-h-screen bg-brutal-cream p-4 md:p-8 font-mono">
       {/* Header */}
@@ -83,12 +199,20 @@ export default function Admin() {
                 <span>APPLICATION DATABASE</span>
               </p>
             </div>
-            <a
-              href="/"
-              className="bg-brutal-yellow text-black px-4 py-2 font-bold hover:bg-brutal-red transition-colors"
-            >
-              ← BACK
-            </a>
+            <div className="flex gap-2">
+              <a
+                href="/"
+                className="bg-brutal-yellow text-black px-4 py-2 font-bold hover:bg-white transition-colors"
+              >
+                ← BACK
+              </a>
+              <button
+                onClick={handleLogout}
+                className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-white hover:text-black transition-colors flex items-center gap-2"
+              >
+                <LogOut size={16} /> LOGOUT
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -120,7 +244,7 @@ export default function Admin() {
       </div>
 
       {/* Controls */}
-      <div className="max-w-6xl mx-auto mb-6">
+      <div className="max-w-6xl mx-auto mb-6 flex flex-wrap gap-4">
         <BrutalButton onClick={fetchApplications} disabled={loading}>
           <RefreshCw
             className={`inline mr-2 ${loading ? "animate-spin" : ""}`}
@@ -128,6 +252,15 @@ export default function Admin() {
           />
           {loading ? "LOADING..." : "REFRESH DATA"}
         </BrutalButton>
+
+        {applications.length > 0 && (
+          <button
+            onClick={deleteAllApplications}
+            className="bg-brutal-red text-white border-4 border-black px-4 py-2 font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
+            <Trash2 size={16} /> DELETE ALL
+          </button>
+        )}
       </div>
 
       {/* Error State */}
@@ -178,9 +311,19 @@ export default function Admin() {
                     <span className="bg-brutal-blue text-white px-2 py-1 text-xs font-bold uppercase">
                       {app.department}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 hidden md:block">
                       {formatDate(app.submittedAt)}
                     </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteApplication(app.id);
+                      }}
+                      className="p-2 hover:bg-brutal-red hover:text-white transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                     {expandedId === app.id ? <ChevronUp /> : <ChevronDown />}
                   </div>
                 </div>
@@ -274,11 +417,7 @@ export default function Admin() {
                           </p>
                           {app.cvFilename ? (
                             <a
-                              href={`${
-                                import.meta.env.DEV
-                                  ? "http://localhost:3000"
-                                  : ""
-                              }/api/cv/${app.id}`}
+                              href={`${apiBase}/api/cv/${app.id}`}
                               className="flex items-center gap-2 bg-brutal-yellow px-3 py-2 font-bold hover:bg-brutal-red hover:text-white transition-colors inline-block"
                             >
                               <Download size={14} />
