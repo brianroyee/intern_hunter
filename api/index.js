@@ -32,6 +32,18 @@ async function initDB() {
         submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS blog_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        excerpt TEXT,
+        content TEXT NOT NULL,
+        author TEXT DEFAULT 'ADMIN',
+        imageBase64 TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   } catch (error) {
     console.error('DB Init Error:', error.message);
   }
@@ -172,6 +184,65 @@ module.exports = async (req, res) => {
         message: 'Application submitted successfully!',
         applicationId: result.lastInsertRowid
       });
+    }
+
+    // --- BLOG ENDPOINTS ---
+
+    // Get All Blogs
+    if (url === '/api/blogs' && req.method === 'GET') {
+      if (!dbInitialized) {
+        await initDB();
+        dbInitialized = true;
+      }
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      const result = await db.execute('SELECT * FROM blog_posts ORDER BY createdAt DESC');
+      return res.status(200).json(result.rows);
+    }
+
+    // Create Blog Post
+    if (url === '/api/blogs' && req.method === 'POST') {
+      if (!dbInitialized) {
+        await initDB();
+        dbInitialized = true;
+      }
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      // Parse body (Multipart or JSON)
+      constcontentType = req.headers['content-type'] || '';
+      let fields = {};
+      let file = null;
+
+      if (contentType.includes('multipart/form-data')) {
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+        const rawBody = Buffer.concat(chunks).toString('binary');
+        const parsed = parseMultipart(rawBody, contentType);
+        fields = parsed.fields;
+        file = parsed.file;
+      } else {
+        fields = req.body || {};
+      }
+
+      const { title, excerpt, content, author } = fields;
+      let imageBase64 = null;
+
+      if (file && file.buffer) {
+        imageBase64 = file.buffer.toString('base64');
+      }
+
+      try {
+        const result = await db.execute({
+          sql: `INSERT INTO blog_posts (title, excerpt, content, author, imageBase64) VALUES (?, ?, ?, ?, ?)`,
+          args: [title, excerpt, content, author || 'ADMIN', imageBase64]
+        });
+        return res.status(200).json({ success: true, id: result.lastInsertRowid });
+      } catch (e) {
+        console.error("Blog Insert Error:", e);
+        return res.status(500).json({ success: false, error: e.message });
+      }
     }
 
     // Get All Applications
