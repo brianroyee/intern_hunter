@@ -2,7 +2,10 @@
   "name": "intern-os-brutal",
   "version": "1.0.0",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
