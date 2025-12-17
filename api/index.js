@@ -1,8 +1,10 @@
 const express = require('express');
 const multer = require('multer');
+const cors = require('cors');
 const { createClient } = require('@libsql/client');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // --- TURSO DATABASE CONNECTION ---
