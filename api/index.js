@@ -312,6 +312,41 @@ module.exports = async (req, res) => {
       }
     }
 
+    // Resequence IDs
+    if (url === '/api/admin/resequence' && req.method === 'POST') {
+      const { password } = req.body || {};
+      if (password !== process.env.ADMIN_PASSWORD) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      try {
+        const result = await db.execute('SELECT id FROM blog_posts ORDER BY createdAt ASC');
+        const posts = result.rows;
+
+        for (let i = 0; i < posts.length; i++) {
+            const oldId = posts[i].id;
+            const newId = i + 1;
+            if (oldId !== newId) {
+                 await db.execute({
+                    sql: 'UPDATE blog_posts SET id = ? WHERE id = ?',
+                    args: [newId, oldId]
+                 });
+            }
+        }
+
+        const maxId = posts.length;
+        await db.execute({
+            sql: "UPDATE sqlite_sequence SET seq = ? WHERE name = 'blog_posts'",
+            args: [maxId]
+        });
+
+        return res.status(200).json({ success: true, message: 'IDs normalized' });
+      } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+      }
+    }
+
     // Create Blog Post
     if (url === '/api/blogs' && req.method === 'POST') {
       if (!dbInitialized) {

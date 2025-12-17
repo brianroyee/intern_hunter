@@ -253,6 +253,34 @@ export default function Admin() {
     }
   };
 
+  const handleResequence = async () => {
+    if (
+      !confirm(
+        "CONFIRM DATABASE RENORMALIZATION? THIS WILL RESET ALL IDS TO BE SEQUENTIAL (1, 2, 3...)."
+      )
+    ) {
+      return;
+    }
+    try {
+      const response = await fetch(`${apiBase}/api/admin/resequence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: storedPassword || password }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert("DATABASE RENORMALIZED. IDS ARE NOW SEQUENTIAL.");
+        fetchBlogs();
+      } else {
+        alert("FAILED TO RENORMALIZE: " + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("ERROR RENORMALIZING");
+    }
+  };
+
   const resetBlogForm = () => {
     setBlogForm({
       title: "",
@@ -415,6 +443,15 @@ export default function Admin() {
             className="bg-brutal-red text-white border-4 border-black px-4 py-2 font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
           >
             <Trash2 size={16} /> DELETE ALL
+          </button>
+        )}
+
+        {activeTab === "blogs" && (
+          <button
+            onClick={handleResequence}
+            className="bg-brutal-yellow text-black border-4 border-black px-4 py-2 font-bold hover:bg-black hover:text-white transition-colors flex items-center gap-2"
+          >
+            <RefreshCw size={16} /> NORMALIZE DB
           </button>
         )}
       </div>
