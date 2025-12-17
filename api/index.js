@@ -250,11 +250,19 @@ module.exports = async (req, res) => {
       if (!db) return res.status(500).json({ error: 'Database not configured' });
       
       try {
+        // 1. Delete
         await db.execute({
           sql: 'DELETE FROM blog_posts WHERE id = ?',
           args: [id]
         });
-        return res.status(200).json({ success: true, message: 'Blog post deleted' });
+
+        // 2. Re-sequence
+        await db.execute({
+          sql: 'UPDATE blog_posts SET id = id - 1 WHERE id > ?',
+          args: [id]
+        });
+
+        return res.status(200).json({ success: true, message: 'Blog post deleted and IDs re-sequenced' });
       } catch (error) {
         return res.status(500).json({ error: error.message });
       }

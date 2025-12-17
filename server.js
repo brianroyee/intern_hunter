@@ -246,11 +246,21 @@ app.delete('/api/blogs/:id', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: 'Database not configured' });
     const { id } = req.params;
+    
+    // 1. Delete the post
     await db.execute({
       sql: 'DELETE FROM blog_posts WHERE id = ?',
       args: [id]
     });
-    res.json({ success: true, message: 'Blog post deleted' });
+
+    // 2. Re-sequence IDs (Fill the gap)
+    // Decrement ID of all posts that had a higher ID than the deleted one
+    await db.execute({
+      sql: 'UPDATE blog_posts SET id = id - 1 WHERE id > ?',
+      args: [id]
+    });
+
+    res.json({ success: true, message: 'Blog post deleted and IDs re-sequenced' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
