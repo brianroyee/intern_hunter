@@ -7,7 +7,7 @@ import Admin from "./Admin";
 import LandingPage from "./LandingPage";
 import ApplyPage from "./ApplyPage";
 import RecruiterPage from "./RecruiterPage";
-import { CandidateProfile, SKILL_CATEGORIES, DEPARTMENTS } from "./types";
+import { CandidateProfile, DEPARTMENTS } from "./types";
 import {
   BrutalBox,
   BrutalButton,

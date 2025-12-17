@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { CandidateProfile, SKILL_CATEGORIES, DEPARTMENTS } from "./types";
+import { CandidateProfile, SKILL_SUGGESTIONS, DEPARTMENTS } from "./types";
 import {
   BrutalBox,
   BrutalButton,
@@ -31,6 +31,7 @@ export default function ApplyPage() {
     skills: [],
     bio: "",
     experienceLevel: "intern",
+    education: "",
     portfolioUrl: "",
     subscribeToNewsletter: false,
   });
@@ -68,6 +69,10 @@ export default function ApplyPage() {
       alert("MANDATORY FIELDS MISSING: NAME OR EMAIL");
       return;
     }
+    if (!formData.education) {
+      alert("PLEASE TELL US WHAT YOU ARE STUDYING.");
+      return;
+    }
     if (!file) {
       alert("MANDATORY: YOU MUST UPLOAD A CV/RESUME.");
       return;
@@ -95,6 +100,7 @@ export default function ApplyPage() {
     submitData.append("email", formData.email);
     submitData.append("phone", formData.phone);
     submitData.append("department", formData.department);
+    submitData.append("education", formData.education);
     submitData.append("experienceLevel", formData.experienceLevel);
     submitData.append("skills", JSON.stringify(formData.skills));
     submitData.append("bio", formData.bio);
@@ -219,6 +225,32 @@ export default function ApplyPage() {
                 />
               </div>
 
+              {/* Education Section - TIER BLIND */}
+              <div className="mb-8 border-t-4 border-black pt-6">
+                <label className="font-mono font-bold uppercase text-sm border-l-4 border-black pl-2 mb-4 block">
+                  Academic Background
+                </label>
+
+                <div className="bg-brutal-yellow border-4 border-black p-4 mb-4 text-xs md:text-sm font-bold shadow-hard-sm">
+                  ⚠️ DISCLAIMER: WE DO NOT CARE WHICH COLLEGE YOU ATTEND.
+                  TIER-1, TIER-3, OR DROPOUT - IT DOESN'T MATTER. SKILL &gt;
+                  PEDIGREE.
+                  <br />
+                  <br />
+                  JUST TELL US WHAT YOU ARE STUDYING (E.G. "CS", "FINE ARTS",
+                  "SELF-TAUGHT COMPILER DESIGN").
+                </div>
+
+                <BrutalInput
+                  label="Current Study / Major"
+                  name="education"
+                  placeholder="E.G. B.TECH CSE, SELF-TAUGHT, MBA..."
+                  value={formData.education}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
               {/* Experience Level */}
               <div className="mb-8 border-t-4 border-black pt-6">
                 <label className="font-mono font-bold uppercase text-sm border-l-4 border-black pl-2 mb-4 block">
@@ -329,56 +361,73 @@ export default function ApplyPage() {
         {step === 2 && (
           <div className="animate-fade-in-up">
             <BrutalBox title="ROLE_CONFIGURATION">
-              {/* Departments Section - NOW FLEXIBLE */}
+              {/* Departments Section - SELECTION GRID */}
               <div className="mb-10">
-                <BrutalInput
-                  label="Target Role / Department"
-                  name="department"
-                  placeholder="E.G. ENGINEERING, DESIGN, CHIEF VIBES OFFICER..."
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  required
-                />
-
-                {/* Quick Select Chips */}
-                <div className="flex flex-wrap gap-2 mt-[-10px] mb-4">
-                  <span className="text-xs font-bold uppercase opacity-50 self-center">
-                    QUICK SELECT:
+                <label className="font-mono font-bold uppercase text-sm border-l-4 border-black pl-2 mb-4 flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <Briefcase size={16} /> Target Department
                   </span>
+                  <span className="text-brutal-red text-xs font-black">
+                    * REQ
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {DEPARTMENTS.map((dept) => (
-                    <button
+                    <label
                       key={dept}
-                      onClick={() =>
-                        setFormData((prev) => ({ ...prev, department: dept }))
-                      }
                       className={`
-                                text-xs border-2 border-black px-2 py-1 uppercase font-bold transition-all
-                                ${
-                                  formData.department === dept
-                                    ? "bg-black text-white"
-                                    : "bg-transparent hover:bg-gray-200"
-                                }
-                            `}
+                      border-4 border-black p-3 cursor-pointer transition-all hover:shadow-hard-sm flex items-center gap-2
+                      ${
+                        formData.department === dept
+                          ? "bg-black text-white"
+                          : "bg-white hover:bg-gray-100"
+                      }
+                    `}
                     >
-                      {dept}
-                    </button>
+                      <input
+                        type="radio"
+                        name="department"
+                        value={dept}
+                        checked={formData.department === dept}
+                        onChange={(e) =>
+                          handleRadioChange("department", e.target.value)
+                        }
+                        className="appearance-none w-4 h-4 border-2 border-current checked:bg-brutal-yellow"
+                      />
+                      <span className="font-bold text-xs md:text-sm">
+                        {dept}
+                      </span>
+                    </label>
                   ))}
                 </div>
               </div>
 
               <div className="mb-10 border-t-4 border-black pt-8">
-                {/* Skills Section - NOW FLEXIBLE TAGS */}
+                {/* Skills Section - DYNAMIC SUGGESTIONS */}
                 <BrutalTagInput
                   label="Capabilities Loadout (Skills)"
                   tags={formData.skills}
                   onChange={(newTags) =>
                     setFormData((prev) => ({ ...prev, skills: newTags }))
                   }
-                  placeholder="TYPE SKILL AND ENTER (E.G. REACT, FIIGMA, ROBLOX)..."
-                  suggestions={Object.values(SKILL_CATEGORIES)
-                    .flat()
-                    .slice(0, 8)} // Show a few random suggestions
+                  placeholder={
+                    formData.department
+                      ? `ADD SKILLS FOR ${formData.department}...`
+                      : "SELECT A DEPARTMENT FIRST..."
+                  }
+                  suggestions={
+                    formData.department
+                      ? SKILL_SUGGESTIONS[formData.department] || []
+                      : []
+                  }
                 />
+
+                {!formData.department && (
+                  <p className="text-xs font-bold text-gray-500 mt-2 uppercase">
+                    * Select a department above to see recommended skills
+                  </p>
+                )}
               </div>
 
               <BrutalTextArea
@@ -428,6 +477,9 @@ export default function ApplyPage() {
                         <p className="font-bold text-lg">{formData.fullName}</p>
                         <p>{formData.email}</p>
                         <p>{formData.phone}</p>
+                        <p className="mt-2 text-xs opacity-50 font-bold uppercase">
+                          STUDY: {formData.education}
+                        </p>
                       </div>
                     </div>
 
