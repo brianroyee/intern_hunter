@@ -381,16 +381,16 @@ app.get('/api/jobs/:id/og-image', async (req, res) => {
       
       <!-- Logo area -->
       <rect x="60" y="60" width="80" height="80" fill="black" />
-      <text x="75" y="115" font-family="monospace" font-size="50" font-weight="black" fill="#fff500">I</text>
-      <text x="160" y="115" font-family="monospace" font-size="40" font-weight="black" fill="black">INTERN_OS // BOUNTY</text>
+      <text x="75" y="118" font-family="system-ui, Arial, sans-serif" font-size="50" font-weight="900" fill="#fff500">I</text>
+      <text x="160" y="115" font-family="system-ui, Arial, sans-serif" font-size="40" font-weight="900" fill="black">INTERN_OS // BOUNTY</text>
 
       <!-- Content Area -->
-      <text x="60" y="240" font-family="monospace" font-size="32" font-weight="bold" fill="#666666" text-transform="uppercase">
+      <text x="60" y="240" font-family="system-ui, Arial, sans-serif" font-size="32" font-weight="bold" fill="#666666" text-transform="uppercase">
         AT ${job.company.toUpperCase()}
       </text>
       
       <!-- Role Title (Large & Bold) -->
-      <text x="60" y="320" font-family="monospace" font-size="85" font-weight="900" fill="black">
+      <text x="60" y="320" font-family="system-ui, Arial, sans-serif" font-size="85" font-weight="900" fill="black">
         ${job.title.toUpperCase()}
       </text>
 
@@ -398,15 +398,15 @@ app.get('/api/jobs/:id/og-image', async (req, res) => {
       <rect x="60" y="380" width="1080" height="160" fill="#fff500" stroke="black" stroke-width="8" />
       
       <!-- Salary -->
-      <text x="100" y="440" font-family="monospace" font-size="24" font-weight="bold" fill="black" opacity="0.6">COMPENSATION</text>
-      <text x="100" y="500" font-family="monospace" font-size="56" font-weight="900" fill="black">₹${(job.salary_min/1000).toFixed(0)}K - ₹${(job.salary_max/1000).toFixed(0)}K</text>
+      <text x="100" y="440" font-family="system-ui, Arial, sans-serif" font-size="24" font-weight="bold" fill="black" opacity="0.6">COMPENSATION</text>
+      <text x="100" y="500" font-family="system-ui, Arial, sans-serif" font-size="56" font-weight="900" fill="black">₹${(job.salary_min/1000).toFixed(0)}K - ₹${(job.salary_max/1000).toFixed(0)}K</text>
 
       <!-- Location/Mode -->
-      <text x="650" y="440" font-family="monospace" font-size="24" font-weight="bold" fill="black" opacity="0.6">LOCATION / TYPE</text>
-      <text x="650" y="500" font-family="monospace" font-size="48" font-weight="900" fill="black">${job.location.toUpperCase()} [${job.location_type?.toUpperCase() || 'REMOTE'}]</text>
+      <text x="650" y="440" font-family="system-ui, Arial, sans-serif" font-size="24" font-weight="bold" fill="black" opacity="0.6">LOCATION / TYPE</text>
+      <text x="650" y="500" font-family="system-ui, Arial, sans-serif" font-size="48" font-weight="900" fill="black">${job.location.toUpperCase()} [${job.location_type?.toUpperCase() || 'REMOTE'}]</text>
 
       <!-- Footer Info -->
-      <text x="60" y="585" font-family="monospace" font-size="20" font-weight="bold" fill="#666666">
+      <text x="60" y="585" font-family="system-ui, Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">
         VERIFIED BOUNTY // ${new Date().toLocaleDateString().toUpperCase()} // NO MIDDLEMEN
       </text>
     </svg>
