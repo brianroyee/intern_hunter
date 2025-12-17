@@ -60,9 +60,10 @@ export default function BlogPostPage() {
     const text = `Check out this log entry: ${post?.title}`;
 
     if (platform === "twitter") {
+      const tweetText = `"${post?.title.toUpperCase()}"\n\n${post?.excerpt}`;
       window.open(
         `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-          text
+          tweetText
         )}&url=${encodeURIComponent(url)}`,
         "_blank"
       );

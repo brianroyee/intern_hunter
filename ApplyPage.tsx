@@ -7,6 +7,7 @@ import {
   BrutalInput,
   BrutalTextArea,
   BrutalCheckbox,
+  BrutalTagInput,
 } from "./components/BrutalComponents";
 import {
   Upload,
@@ -328,67 +329,56 @@ export default function ApplyPage() {
         {step === 2 && (
           <div className="animate-fade-in-up">
             <BrutalBox title="ROLE_CONFIGURATION">
-              {/* Departments Section */}
+              {/* Departments Section - NOW FLEXIBLE */}
               <div className="mb-10">
-                <label className="font-mono font-bold uppercase text-sm border-l-4 border-black pl-2 mb-4 flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Briefcase size={16} /> Target Department
+                <BrutalInput
+                  label="Target Role / Department"
+                  name="department"
+                  placeholder="E.G. ENGINEERING, DESIGN, CHIEF VIBES OFFICER..."
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  required
+                />
+
+                {/* Quick Select Chips */}
+                <div className="flex flex-wrap gap-2 mt-[-10px] mb-4">
+                  <span className="text-xs font-bold uppercase opacity-50 self-center">
+                    QUICK SELECT:
                   </span>
-                  <span className="text-brutal-red text-xs font-black">
-                    * REQ
-                  </span>
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {DEPARTMENTS.map((dept) => (
-                    <label
+                    <button
                       key={dept}
-                      className={`
-                      border-4 border-black p-3 cursor-pointer transition-all hover:shadow-hard-sm flex items-center gap-2
-                      ${
-                        formData.department === dept
-                          ? "bg-brutal-blue text-white"
-                          : "bg-white"
+                      onClick={() =>
+                        setFormData((prev) => ({ ...prev, department: dept }))
                       }
-                    `}
+                      className={`
+                                text-xs border-2 border-black px-2 py-1 uppercase font-bold transition-all
+                                ${
+                                  formData.department === dept
+                                    ? "bg-black text-white"
+                                    : "bg-transparent hover:bg-gray-200"
+                                }
+                            `}
                     >
-                      <input
-                        type="radio"
-                        name="department"
-                        value={dept}
-                        checked={formData.department === dept}
-                        onChange={(e) =>
-                          handleRadioChange("department", e.target.value)
-                        }
-                        className="appearance-none w-4 h-4 border-2 border-current checked:bg-brutal-yellow"
-                      />
-                      <span className="font-bold text-sm">{dept}</span>
-                    </label>
+                      {dept}
+                    </button>
                   ))}
                 </div>
               </div>
 
               <div className="mb-10 border-t-4 border-black pt-8">
-                <label className="font-mono font-bold uppercase text-lg border-b-4 border-black pb-1 mb-6 block w-max">
-                  Capabilities Loadout
-                </label>
-
-                {Object.entries(SKILL_CATEGORIES).map(([category, skills]) => (
-                  <div key={category} className="mb-6">
-                    <h4 className="font-bold text-xs uppercase text-gray-500 mb-2 tracking-widest">
-                      {category.replace("_", " & ")}
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                      {skills.map((skill) => (
-                        <BrutalCheckbox
-                          key={skill}
-                          label={skill}
-                          checked={formData.skills.includes(skill)}
-                          onChange={() => toggleSkill(skill)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                {/* Skills Section - NOW FLEXIBLE TAGS */}
+                <BrutalTagInput
+                  label="Capabilities Loadout (Skills)"
+                  tags={formData.skills}
+                  onChange={(newTags) =>
+                    setFormData((prev) => ({ ...prev, skills: newTags }))
+                  }
+                  placeholder="TYPE SKILL AND ENTER (E.G. REACT, FIIGMA, ROBLOX)..."
+                  suggestions={Object.values(SKILL_CATEGORIES)
+                    .flat()
+                    .slice(0, 8)} // Show a few random suggestions
+                />
               </div>
 
               <BrutalTextArea
