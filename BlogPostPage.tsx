@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { BrutalBox, BrutalButton } from "./components/BrutalComponents";
-import { ArrowLeft, Calendar, User, Twitter, Linkedin, Link as LinkIcon, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  Twitter,
+  Linkedin,
+  Link as LinkIcon,
+  Check,
+} from "lucide-react";
 
 interface BlogPost {
   id: number;
@@ -43,17 +51,28 @@ export default function BlogPostPage() {
     }
   }, [id, apiBase]);
 
+  const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString();
   };
 
-  const handleShare = (platform: 'twitter' | 'linkedin' | 'copy') => {
+  const handleShare = (platform: "twitter" | "linkedin" | "copy") => {
     const url = window.location.href;
     const text = `Check out this log entry: ${post?.title}`;
 
-    if (platform === 'twitter') {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-    } else if (platform === 'linkedin') {
-      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+    if (platform === "twitter") {
+      window.open(
+        `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+          text
+        )}&url=${encodeURIComponent(url)}`,
+        "_blank"
+      );
+    } else if (platform === "linkedin") {
+      window.open(
+        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+          url
+        )}`,
+        "_blank"
+      );
     } else {
       navigator.clipboard.writeText(url);
       setCopied(true);
@@ -127,27 +146,31 @@ export default function BlogPostPage() {
             </div>
 
             <div className="flex gap-2 mt-4">
-                <button 
-                  onClick={() => handleShare('twitter')}
-                  className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
-                  title="Share on Twitter"
-                >
-                  <Twitter size={20} />
-                </button>
-                <button 
-                  onClick={() => handleShare('linkedin')}
-                  className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
-                  title="Share on LinkedIn"
-                >
-                  <Linkedin size={20} />
-                </button>
-                <button 
-                  onClick={() => handleShare('copy')}
-                  className={`p-2 border-2 border-black transition-colors ${copied ? 'bg-green-500 text-white' : 'bg-black text-white hover:bg-brutal-blue'}`}
-                  title="Copy Link"
-                >
-                  {copied ? <Check size={20} /> : <LinkIcon size={20} />}
-                </button>
+              <button
+                onClick={() => handleShare("twitter")}
+                className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
+                title="Share on Twitter"
+              >
+                <Twitter size={20} />
+              </button>
+              <button
+                onClick={() => handleShare("linkedin")}
+                className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
+                title="Share on LinkedIn"
+              >
+                <Linkedin size={20} />
+              </button>
+              <button
+                onClick={() => handleShare("copy")}
+                className={`p-2 border-2 border-black transition-colors ${
+                  copied
+                    ? "bg-green-500 text-white"
+                    : "bg-black text-white hover:bg-brutal-blue"
+                }`}
+                title="Copy Link"
+              >
+                {copied ? <Check size={20} /> : <LinkIcon size={20} />}
+              </button>
             </div>
           </div>
 
