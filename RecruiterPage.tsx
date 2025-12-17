@@ -127,17 +127,14 @@ export default function RecruiterPage() {
                 noise. Post to the elite network.
               </p>
             </div>
-            <a
-              href="mailto:contactbrianroy@gmail.com"
-              className="whitespace-nowrap"
-            >
+            <Link to="/post-job" className="whitespace-nowrap">
               <button className="bg-black text-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black border-2 border-black transition-colors flex items-center gap-2 text-sm">
-                <Send size={14} /> Post Bounty
+                <Send size={14} /> Post Internship
               </button>
-            </a>
+            </Link>
           </div>
 
-          {/* LINKEDIN-STYLE FILTER BAR */}
+          {/* INTERNSHIP FILTER BAR */}
           <div className="bg-white border-4 border-black p-4 md:p-6 shadow-brutal">
             <div className="flex flex-col gap-4">
               {/* Top Row: Search & Location Filter */}

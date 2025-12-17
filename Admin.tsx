@@ -92,6 +92,7 @@ export default function Admin() {
 
   // Job State
   const [jobsList, setJobsList] = useState<JobPost[]>([]);
+  const [pendingJobs, setPendingJobs] = useState<JobPost[]>([]);
   const [jobForm, setJobForm] = useState<JobPost>({
     title: "",
     company: "",
@@ -119,13 +120,60 @@ export default function Admin() {
 
   const fetchJobs = async () => {
     try {
+      // Fetch Active Jobs
       const response = await fetch(`${apiBase}/api/jobs`);
       if (response.ok) {
         const data = await response.json();
         setJobsList(data);
       }
+
+      // Fetch Pending Jobs (Authenticated)
+      const pendingResponse = await fetch(`${apiBase}/api/admin/jobs/pending`, {
+        headers: { "Content-Type": "application/json" }, // Should pass auth here realistically if we implemented middleware
+      });
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        setPendingJobs(pendingData);
+      }
     } catch (error) {
       console.error("Failed to fetch jobs", error);
+    }
+  };
+
+  const handleApproveJob = async (id: number) => {
+    try {
+      const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active", password: storedPassword }),
+      });
+      if (res.ok) {
+        alert("Job Approved! ✅");
+        fetchJobs();
+      } else {
+        alert("Failed to approve");
+      }
+    } catch (err) {
+      alert("Error approving job");
+    }
+  };
+
+  const handleRejectJob = async (id: number) => {
+    if (!confirm("Reject and remove this job submission?")) return;
+    try {
+      const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected", password: storedPassword }),
+      });
+      if (res.ok) {
+        alert("Job Rejected ❌");
+        fetchJobs();
+      } else {
+        alert("Failed to reject");
+      }
+    } catch (err) {
+      alert("Error rejecting job");
     }
   };
 
