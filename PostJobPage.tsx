@@ -395,34 +395,51 @@ export default function PostJobPage() {
               }
             />
 
-            <div className="grid md:grid-cols-3 gap-4">
-              <BrutalInput
-                label="Min Stipend (₹/month)"
-                placeholder="5000"
-                type="number"
-                value={jobForm.stipend_min}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, stipend_min: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Max Stipend (₹/month)"
-                placeholder="25000"
-                type="number"
-                value={jobForm.stipend_max}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, stipend_max: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Equity (%)"
-                placeholder="0.1%"
-                value={jobForm.equity}
-                onChange={(e) =>
-                  setJobForm({ ...jobForm, equity: e.target.value })
-                }
-              />
-            </div>
+            {(jobForm.compensationType.includes("Stipend") ||
+              jobForm.compensationType.includes("Paid")) && (
+              <div className="grid md:grid-cols-3 gap-4">
+                <BrutalInput
+                  label="Min Stipend (₹/month)"
+                  placeholder="5000"
+                  type="number"
+                  value={jobForm.stipend_min}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, stipend_min: e.target.value })
+                  }
+                />
+                <BrutalInput
+                  label="Max Stipend (₹/month)"
+                  placeholder="25000"
+                  type="number"
+                  value={jobForm.stipend_max}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, stipend_max: e.target.value })
+                  }
+                />
+                <BrutalInput
+                  label="Equity (%)"
+                  placeholder="0.1%"
+                  value={jobForm.equity}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, equity: e.target.value })
+                  }
+                />
+              </div>
+            )}
+
+            {!jobForm.compensationType.includes("Stipend") &&
+              !jobForm.compensationType.includes("Paid") && (
+                <div className="grid md:grid-cols-1 gap-4">
+                  <BrutalInput
+                    label="Equity (%)"
+                    placeholder="0.1%"
+                    value={jobForm.equity}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, equity: e.target.value })
+                    }
+                  />
+                </div>
+              )}
 
             {/* TAGS - Checkbox MCQ */}
             <div>

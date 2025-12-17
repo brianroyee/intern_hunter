@@ -48,6 +48,14 @@ interface JobPost {
   description: string;
   apply_url: string;
   created_at?: string;
+  location_type?: string;
+  internship_type?: string;
+  duration?: string;
+  academic_year?: string;
+  discipline?: string;
+  compensation_type?: string;
+  admin_rating?: number;
+  admin_comments?: string;
 }
 
 interface Application {
@@ -93,6 +101,9 @@ export default function Admin() {
   // Job State
   const [jobsList, setJobsList] = useState<JobPost[]>([]);
   const [pendingJobs, setPendingJobs] = useState<JobPost[]>([]);
+  const [reviews, setReviews] = useState<{
+    [key: number]: { rating: number; comments: string };
+  }>({});
   const [jobForm, setJobForm] = useState<JobPost>({
     title: "",
     company: "",
@@ -142,10 +153,16 @@ export default function Admin() {
 
   const handleApproveJob = async (id: number) => {
     try {
+      const review = reviews[id] || { rating: 0, comments: "" };
       const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "active", password: storedPassword }),
+        body: JSON.stringify({
+          status: "active",
+          password: storedPassword,
+          rating: review.rating,
+          comments: review.comments,
+        }),
       });
       if (res.ok) {
         alert("Job Approved! ✅");
@@ -161,10 +178,15 @@ export default function Admin() {
   const handleRejectJob = async (id: number) => {
     if (!confirm("Reject and remove this job submission?")) return;
     try {
+      const review = reviews[id] || { rating: 0, comments: "" };
       const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "rejected", password: storedPassword }),
+        body: JSON.stringify({
+          status: "rejected",
+          password: storedPassword,
+          comments: review.comments,
+        }),
       });
       if (res.ok) {
         alert("Job Rejected ❌");
@@ -1044,6 +1066,135 @@ export default function Admin() {
                 </BrutalButton>
               </div>
             </BrutalBox>
+
+            {/* PENDING APPROVALS */}
+            <div className="border-t-8 border-black pt-12 mb-12">
+              <h2 className="text-3xl font-black uppercase mb-8 flex items-center gap-2 text-brutal-red">
+                <Lock /> PENDING APPROVALS ({pendingJobs.length})
+              </h2>
+              <div className="space-y-8">
+                {pendingJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="border-4 border-black bg-yellow-50 p-6 shadow-brutal"
+                  >
+                    <h3 className="font-black text-2xl mb-2">
+                      {job.title} @ {job.company}
+                    </h3>
+
+                    <div className="grid md:grid-cols-2 gap-4 mb-4 text-sm font-mono border-b-2 border-black pb-4">
+                      <div>
+                        <p>
+                          <strong>Location:</strong> {job.location} (
+                          {job.location_type})
+                        </p>
+                        <p>
+                          <strong>Type:</strong> {job.internship_type} |{" "}
+                          {job.duration}
+                        </p>
+                        <p>
+                          <strong>Comp:</strong> {job.compensation_type}
+                        </p>
+                        <p>
+                          <strong>Stipend:</strong> ${job.salary_min} - $
+                          {job.salary_max}
+                        </p>
+                      </div>
+                      <div>
+                        <p>
+                          <strong>Discipline:</strong> {job.discipline}
+                        </p>
+                        <p>
+                          <strong>Year:</strong> {job.academic_year}
+                        </p>
+                        <p>
+                          <strong>Equity:</strong> {job.equity || "None"}
+                        </p>
+                        <p>
+                          <strong>Applied:</strong>{" "}
+                          {new Date(job.created_at || "").toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border-2 border-black p-4 mb-4">
+                      <p className="font-bold border-b-2 border-black mb-2">
+                        DESCRIPTION
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm">
+                        {job.description}
+                      </p>
+                    </div>
+
+                    {/* ADMIN REVIEW AREA */}
+                    <div className="bg-black text-white p-4">
+                      <p className="font-bold mb-2 uppercase text-brutal-yellow">
+                        Admin Review
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="text-xs uppercase block mb-1">
+                            Rating (1-5)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            className="w-full text-black p-2 font-bold"
+                            value={reviews[job.id!]?.rating || 0}
+                            onChange={(e) =>
+                              setReviews({
+                                ...reviews,
+                                [job.id!]: {
+                                  ...reviews[job.id!],
+                                  rating: parseInt(e.target.value),
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs uppercase block mb-1">
+                            Comments (Internal)
+                          </label>
+                          <textarea
+                            className="w-full text-black p-2 text-sm"
+                            placeholder="Add notes..."
+                            value={reviews[job.id!]?.comments || ""}
+                            onChange={(e) =>
+                              setReviews({
+                                ...reviews,
+                                [job.id!]: {
+                                  ...reviews[job.id!],
+                                  comments: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => handleApproveJob(job.id!)}
+                          className="flex-1 bg-brutal-green text-black font-black uppercase py-3 hover:bg-white transition-colors"
+                        >
+                          Approve & Publish
+                        </button>
+                        <button
+                          onClick={() => handleRejectJob(job.id!)}
+                          className="flex-1 bg-brutal-red text-white font-black uppercase py-3 hover:bg-black border-2 border-white transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {pendingJobs.length === 0 && (
+                  <p className="opacity-50">No pending jobs.</p>
+                )}
+              </div>
+            </div>
 
             <div className="border-t-8 border-black pt-12">
               <h2 className="text-3xl font-black uppercase mb-8 flex items-center gap-2">

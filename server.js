@@ -54,12 +54,17 @@ async function initDB() {
 
     await db.execute(`
       CREATE TABLE IF NOT EXISTS jobs (
-      CREATE TABLE IF NOT EXISTS jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         company TEXT NOT NULL,
         company_url TEXT,
         location TEXT NOT NULL,
+        location_type TEXT,
+        internship_type TEXT,
+        duration TEXT,
+        academic_year TEXT,
+        discipline TEXT,
+        compensation_type TEXT,
         salary_min INTEGER,
         salary_max INTEGER,
         equity TEXT,
@@ -67,15 +72,31 @@ async function initDB() {
         description TEXT NOT NULL,
         apply_url TEXT,
         status TEXT DEFAULT 'pending', -- pending, active, rejected
+        admin_rating REAL, -- New: Admin Rating
+        admin_comments TEXT, -- New: Admin Comments
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Migration for existing DBs: Try to add status column if it's missing
-    try {
-        await db.execute("ALTER TABLE jobs ADD COLUMN status TEXT DEFAULT 'pending'");
-    } catch (e) {
-        // Ignore error if column already exists
+    // Migration for existing DBs: Try to add columns if they are missing
+    const migrations = [
+        "ALTER TABLE jobs ADD COLUMN status TEXT DEFAULT 'pending'",
+        "ALTER TABLE jobs ADD COLUMN location_type TEXT",
+        "ALTER TABLE jobs ADD COLUMN internship_type TEXT",
+        "ALTER TABLE jobs ADD COLUMN duration TEXT",
+        "ALTER TABLE jobs ADD COLUMN academic_year TEXT",
+        "ALTER TABLE jobs ADD COLUMN discipline TEXT",
+        "ALTER TABLE jobs ADD COLUMN compensation_type TEXT",
+        "ALTER TABLE jobs ADD COLUMN admin_rating REAL",
+        "ALTER TABLE jobs ADD COLUMN admin_comments TEXT"
+    ];
+
+    for (const sql of migrations) {
+        try {
+            await db.execute(sql);
+        } catch (e) {
+            // Ignore error if column already exists
+        }
     }
 
     await db.execute(`
@@ -237,9 +258,6 @@ app.get('/api/blogs/:id', async (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not configured' });
     const { id } = req.params;
     
-    // Fetch full blog post including content, but still exclude imageBase64 (frontend fetches it separately)
-    // Actually, for the reading page, we might want the image separate anyway to use the image endpoint.
-    // So we just fetch text fields.
     const result = await db.execute({
         sql: 'SELECT id, title, excerpt, content, author, createdAt FROM blog_posts WHERE id = ?',
         args: [id]
@@ -293,7 +311,6 @@ app.delete('/api/blogs/:id', async (req, res) => {
     });
 
     // 2. Re-sequence IDs (Fill the gap)
-    // Decrement ID of all posts that had a higher ID than the deleted one
     await db.execute({
       sql: 'UPDATE blog_posts SET id = id - 1 WHERE id > ?',
       args: [id]
@@ -359,9 +376,7 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-// GET Single Job (Public - checks active status or if ID exists for now, maybe loosely restrict?)
-// Ideally should only show active, but for sharing pending links maybe keep open? 
-// Let's restrict to active for now to prevent leaking.
+// GET Single Job (Public)
 app.get('/api/jobs/:id', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: 'Database not configured' });
@@ -373,9 +388,6 @@ app.get('/api/jobs/:id', async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Job not found' });
     
     const job = result.rows[0];
-    // Optional: Hide if not active? 
-    // if (job.status !== 'active') return res.status(404).json({ error: 'Job under review' });
-    
     job.tags = job.tags ? JSON.parse(job.tags) : [];
     res.json(job);
   } catch (error) {
@@ -389,18 +401,51 @@ app.post('/api/jobs', async (req, res) => {
     if (!dbInitialized) await initDB();
     if (!db) return res.status(500).json({ error: 'Database not configured' });
 
-    const { title, company, company_url, location, salary_min, salary_max, equity, tags, description, apply_url } = req.body;
+    // Extract all fields, including new internship fields
+    const { 
+        title, 
+        company, 
+        company_url, 
+        location, 
+        locationType, // camelCase from text
+        internshipType, 
+        duration, 
+        academicYear, 
+        discipline,
+        compensationType, 
+        salary_min, 
+        salary_max,
+        stipend_min, 
+        stipend_max, 
+        equity, 
+        tags, 
+        description, 
+        apply_url 
+    } = req.body;
+
+    // Use stipend values for salary columns if present
+    const finalSalaryMin = stipend_min || salary_min || 0;
+    const finalSalaryMax = stipend_max || salary_max || 0;
 
     const result = await db.execute({
-      sql: `INSERT INTO jobs (title, company, company_url, location, salary_min, salary_max, equity, tags, description, apply_url, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      sql: `INSERT INTO jobs (
+        title, company, company_url, location, 
+        location_type, internship_type, duration, academic_year, discipline, compensation_type,
+        salary_min, salary_max, equity, tags, description, apply_url, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       args: [
         title, 
         company, 
         company_url || '', 
-        location, 
-        salary_min || 0, 
-        salary_max || 0, 
+        location,
+        locationType || 'Remote',
+        internshipType || 'Summer Internship',
+        duration || '3 Months',
+        academicYear || 'Any Year',
+        discipline || 'Other',
+        compensationType || 'Paid Stipend',
+        finalSalaryMin,
+        finalSalaryMax, 
         equity || '', 
         JSON.stringify(tags || []), 
         description, 
@@ -409,6 +454,7 @@ app.post('/api/jobs', async (req, res) => {
     });
     res.json({ success: true, id: result.lastInsertRowid, message: "Job submitted for review" });
   } catch (error) {
+    console.error("Job Submit Error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -419,11 +465,6 @@ app.post('/api/jobs', async (req, res) => {
 app.get('/api/admin/jobs/pending', async (req, res) => {
     try {
         if (!db) return res.status(500).json({ error: 'Database not configured' });
-        // Basic auth check via header for simplicity or integration with existing admin check
-        // For this MVP, we rely on the frontend passing the password in a header or similar, 
-        // OR we just assume the /admin page is protected. 
-        // Realistically, we should check `req.headers['x-admin-password']` or similar if we want security.
-        // Given existing endpoints don't seem to enforce middleware, I'll keep it open but intended for admin.
         
         const result = await db.execute("SELECT * FROM jobs WHERE status = 'pending' ORDER BY created_at ASC");
         const jobs = result.rows.map(job => ({
@@ -436,34 +477,33 @@ app.get('/api/admin/jobs/pending', async (req, res) => {
     }
 });
 
-// POST Update Job Status (Admin Approve/Reject)
+// POST Update Job Status (Admin Approve/Reject w/ Comments)
 app.post('/api/admin/jobs/:id/status', async (req, res) => {
     try {
         if (!db) return res.status(500).json({ error: 'Database not configured' });
         const { id } = req.params;
-        const { status, password } = req.body; // status: 'active' or 'rejected'
+        const { status, password, rating, comments } = req.body; // status: 'active' or 'rejected'
 
         if (password !== process.env.ADMIN_PASSWORD) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        if (status === 'rejected') {
-             // Hard delete for rejection to keep DB clean? Or keep as rejected?
-             // Let's keep as rejected for record in a real app, but for this "intern_os" maybe just delete?
-             // User asked for "approve/reject". 
-             // Let's just update status.
-             await db.execute({
-                 sql: "UPDATE jobs SET status = 'rejected' WHERE id = ?",
-                 args: [id]
-             });
-        } else if (status === 'active') {
-             await db.execute({
-                 sql: "UPDATE jobs SET status = 'active' WHERE id = ?",
-                 args: [id]
-             });
-        } else {
-            return res.status(400).json({ error: 'Invalid status' });
+        let sql = "UPDATE jobs SET status = ?";
+        const args = [status];
+        
+        if (rating !== undefined) {
+            sql += ", admin_rating = ?";
+            args.push(rating);
         }
+        if (comments !== undefined) {
+             sql += ", admin_comments = ?";
+             args.push(comments);
+        }
+
+        sql += " WHERE id = ?";
+        args.push(id);
+
+        await db.execute({ sql, args });
 
         res.json({ success: true });
     } catch (error) {
@@ -513,30 +553,13 @@ app.post('/api/admin/resequence', async (req, res) => {
        return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // 1. Get all posts ordered by date
     const result = await db.execute('SELECT id FROM blog_posts ORDER BY createdAt ASC');
     const posts = result.rows;
-
-    // 2. Update IDs sequentially
-    // We do this in a specific way to avoid unique constraint violations if we are just shifting
-    // Simplest way for small data: Move all to huge IDs first (temporary), then back to 1..N?
-    // Or just rely on the fact that we are likely shrinking IDs (4 -> 1). 
-    // If we have 1, 4, 5 and want 1, 2, 3. 1 is fine. 4->2, 5->3.
-    // If we iterate sorted by ID ASC, we can just update.
-    
-    // Better strategy:
-    // Create a temporary table, copy data, drop old, rename new? 
-    // No, overly complex for this app.
-    
-    // Simple Strategy: UPDATE one by one. If collision, it will fail, but since we are compacting gaps, 
-    // collisions only happen if we swap order. Assuming we keep date order = ID order.
     
     for (let i = 0; i < posts.length; i++) {
         const oldId = posts[i].id;
         const newId = i + 1;
         if (oldId !== newId) {
-            // First check if target ID exists (it shouldn't if we are compacting validly from bottom up, unless unsorted?)
-            // We just execute.
              await db.execute({
                 sql: 'UPDATE blog_posts SET id = ? WHERE id = ?',
                 args: [newId, oldId]
@@ -544,7 +567,6 @@ app.post('/api/admin/resequence', async (req, res) => {
         }
     }
 
-    // 3. Fix AutoIncrement Sequence
     const maxId = posts.length;
     await db.execute({
         sql: "UPDATE sqlite_sequence SET seq = ? WHERE name = 'blog_posts'",
@@ -593,5 +615,4 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Export for Vercel serverless
 module.exports = app;
