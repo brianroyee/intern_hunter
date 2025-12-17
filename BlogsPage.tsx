@@ -16,6 +16,7 @@ interface BlogPost {
 export default function BlogsPage() {
   const [posts, setPosts] = React.useState<BlogPost[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [expandedId, setExpandedId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     const fetchPosts = async () => {
@@ -103,6 +104,26 @@ export default function BlogsPage() {
 
                     <div className="text-lg leading-relaxed border-l-4 border-brutal-yellow pl-4">
                       {post.excerpt}
+                    </div>
+
+                    {expandedId === post.id && (
+                      <div className="mt-4 pt-4 border-t-2 border-black border-dashed whitespace-pre-wrap font-sans text-lg">
+                        {post.content}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex justify-end">
+                      <BrutalButton
+                        className="text-sm"
+                        onClick={() =>
+                          setExpandedId(expandedId === post.id ? null : post.id)
+                        }
+                      >
+                        {expandedId === post.id ? "CLOSE_LOG" : "READ_FULL_LOG"}{" "}
+                        <span className="ml-2">
+                          {expandedId === post.id ? "↑" : "→"}
+                        </span>
+                      </BrutalButton>
                     </div>
                   </div>
                 </BrutalBox>
