@@ -93,6 +93,53 @@ interface Referral {
   company?: string;
 }
 
+// CONSTANTS FOR DROPDOWNS
+const LOCATION_TYPES = ["Remote", "On-site", "Hybrid"];
+const INTERNSHIP_TYPES = [
+  "Summer Internship",
+  "Winter Internship",
+  "Co-op Program",
+  "Research Internship",
+  "Project-Based",
+  "Part-time Internship",
+];
+const DURATION_OPTIONS = [
+  "1-2 Months",
+  "3 Months",
+  "6 Months",
+  "12 Months",
+  "Flexible",
+];
+const COMPENSATION_TYPES = [
+  "Paid Stipend",
+  "Unpaid (For Credit)",
+  "Equity / Sweat Equity",
+  "Stipend + Equity",
+];
+const ACADEMIC_YEARS = [
+  "Any Year",
+  "1st Year",
+  "2nd Year",
+  "3rd Year",
+  "Final Year",
+  "Recent Graduate",
+];
+const DISCIPLINES = [
+  "Engineering",
+  "Design",
+  "Marketing",
+  "Sales & BD",
+  "Finance & Accounting",
+  "Operations",
+  "HR & People Ops",
+  "Content & Media",
+  "Research",
+  "Data Science",
+  "Product Management",
+  "Legal",
+  "Other",
+];
+
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -1121,6 +1168,159 @@ export default function Admin() {
                       }
                     />
                   </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Location Type
+                    </label>
+                    <select
+                      value={jobForm.locationType}
+                      onChange={(e) =>
+                        setJobForm({ ...jobForm, locationType: e.target.value })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {LOCATION_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Internship Type
+                    </label>
+                    <select
+                      value={jobForm.internship_type}
+                      onChange={(e) =>
+                        setJobForm({
+                          ...jobForm,
+                          internship_type: e.target.value,
+                        })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {INTERNSHIP_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Duration
+                    </label>
+                    <select
+                      value={jobForm.duration}
+                      onChange={(e) =>
+                        setJobForm({ ...jobForm, duration: e.target.value })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {DURATION_OPTIONS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Academic Year
+                    </label>
+                    <select
+                      value={jobForm.academic_year}
+                      onChange={(e) =>
+                        setJobForm({
+                          ...jobForm,
+                          academic_year: e.target.value,
+                        })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {ACADEMIC_YEARS.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Discipline
+                    </label>
+                    <select
+                      value={jobForm.discipline}
+                      onChange={(e) =>
+                        setJobForm({ ...jobForm, discipline: e.target.value })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {DISCIPLINES.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold uppercase block mb-2">
+                      Compensation Type
+                    </label>
+                    <select
+                      value={jobForm.compensation_type}
+                      onChange={(e) =>
+                        setJobForm({
+                          ...jobForm,
+                          compensation_type: e.target.value,
+                        })
+                      }
+                      className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
+                    >
+                      {COMPENSATION_TYPES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <BrutalInput
+                    label="LinkedIn URL"
+                    placeholder="https://linkedin.com/..."
+                    value={jobForm.linkedin_url}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, linkedin_url: e.target.value })
+                    }
+                  />
+                  <BrutalInput
+                    label="Twitter URL"
+                    placeholder="https://twitter.com/..."
+                    value={jobForm.twitter_url}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, twitter_url: e.target.value })
+                    }
+                  />
+                  <BrutalInput
+                    label="Instagram URL"
+                    placeholder="https://instagram.com/..."
+                    value={jobForm.instagram_url}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, instagram_url: e.target.value })
+                    }
+                  />
                 </div>
 
                 <BrutalInput
