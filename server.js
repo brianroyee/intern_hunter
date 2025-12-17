@@ -192,6 +192,30 @@ app.get('/api/blogs', async (req, res) => {
   }
 });
 
+// --- API ENDPOINT: Get Single Blog Post ---
+app.get('/api/blogs/:id', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+    const { id } = req.params;
+    
+    // Fetch full blog post including content, but still exclude imageBase64 (frontend fetches it separately)
+    // Actually, for the reading page, we might want the image separate anyway to use the image endpoint.
+    // So we just fetch text fields.
+    const result = await db.execute({
+        sql: 'SELECT id, title, excerpt, content, author, createdAt FROM blog_posts WHERE id = ?',
+        args: [id]
+    });
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Blog post not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- API ENDPOINT: Get Blog Image ---
 app.get('/api/blogs/:id/image', async (req, res) => {
   try {

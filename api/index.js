@@ -200,6 +200,27 @@ module.exports = async (req, res) => {
       return res.status(200).json(result.rows);
     }
 
+    // Get Single Blog Post
+    if (url.match(/^\/api\/blogs\/\d+$/) && req.method === 'GET') {
+      const id = url.split('/api/blogs/')[1];
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      try {
+        const result = await db.execute({
+          sql: 'SELECT id, title, excerpt, content, author, createdAt FROM blog_posts WHERE id = ?',
+          args: [id]
+        });
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Blog post not found' });
+        }
+
+        return res.status(200).json(result.rows[0]);
+      } catch (error) {
+        return res.status(500).json({ error: error.message });
+      }
+    }
+
     // Get Blog Image
     if (url.match(/^\/api\/blogs\/\d+\/image$/) && req.method === 'GET') {
       const id = url.split('/api/blogs/')[1].split('/')[0];

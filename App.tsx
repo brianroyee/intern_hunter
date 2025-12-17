@@ -1,5 +1,9 @@
 import React, { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
+import BlogsPage from "./BlogsPage";
+import BlogPostPage from "./BlogPostPage";
+import BlogArchivePage from "./BlogArchivePage";
+import Admin from "./Admin";
 import { CandidateProfile, SKILL_CATEGORIES, DEPARTMENTS } from "./types";
 import {
   BrutalBox,
@@ -19,6 +23,18 @@ import {
 } from "lucide-react";
 
 export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/blogs" element={<BlogsPage />} />
+      <Route path="/blogs/archive" element={<BlogArchivePage />} />
+      <Route path="/blogs/:id" element={<BlogPostPage />} />
+      <Route path="/admin" element={<Admin />} />
+    </Routes>
+  );
+}
+
+function Home() {
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
