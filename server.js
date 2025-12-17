@@ -425,6 +425,7 @@ app.post('/api/jobs', async (req, res) => {
         stipend_min, 
         stipend_max, 
         equity, 
+        tags,
         description, 
         apply_url,
         linkedin_url,
