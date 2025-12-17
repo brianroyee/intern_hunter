@@ -209,7 +209,7 @@ module.exports = async (req, res) => {
       if (!db) return res.status(500).json({ error: 'Database not configured' });
 
       // Parse body (Multipart or JSON)
-      constcontentType = req.headers['content-type'] || '';
+      const contentType = req.headers['content-type'] || '';
       let fields = {};
       let file = null;
 
