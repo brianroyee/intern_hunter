@@ -180,7 +180,7 @@ app.post('/api/apply', upload.single('cv'), async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Application submitted successfully!',
-      applicationId: result.lastInsertRowid
+      applicationId: result.lastInsertRowid.toString()
     });
 
   } catch (error) {
@@ -228,7 +228,7 @@ app.post('/api/blogs', upload.single('image'), async (req, res) => {
       args: [title, excerpt, content, author || 'ADMIN', imageBase64]
     });
 
-    res.json({ success: true, id: result.lastInsertRowid });
+    res.json({ success: true, id: result.lastInsertRowid.toString() });
   } catch (error) {
     console.error('Blog Create Error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -452,7 +452,7 @@ app.post('/api/jobs', async (req, res) => {
         apply_url || ''
       ]
     });
-    res.json({ success: true, id: result.lastInsertRowid, message: "Job submitted for review" });
+    res.json({ success: true, id: result.lastInsertRowid.toString(), message: "Job submitted for review" });
   } catch (error) {
     console.error("Job Submit Error:", error);
     res.status(500).json({ success: false, error: error.message });
