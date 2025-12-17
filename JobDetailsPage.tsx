@@ -331,8 +331,9 @@ export default function JobDetailsPage() {
 
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  alert("Link Copied!");
+                  const shareText = `${job.title} at ${job.company}\n${window.location.href}`;
+                  navigator.clipboard.writeText(shareText);
+                  alert("Link & Details Copied!");
                 }}
                 className="w-full bg-white text-black border-4 border-black py-2 font-bold uppercase hover:bg-gray-100 flex items-center justify-center gap-2"
               >

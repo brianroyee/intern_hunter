@@ -437,6 +437,136 @@ app.put('/api/blogs/:id', upload.single('image'), async (req, res) => {
   }
 });
 
+// --- SOCIAL SHARING: Handle Job Page Requests with Meta Tags ---
+app.get('/jobs/:id', async (req, res) => {
+  try {
+    if (!dbInitialized) await initDB();
+    if (!db) return res.status(500).send('Database Error');
+
+    const { id } = req.params;
+    
+    // 1. Fetch job data
+    const result = await db.execute({
+        sql: 'SELECT title, company, location, salary_min, salary_max FROM jobs WHERE id = ?',
+        args: [id]
+    });
+
+    if (result.rows.length === 0) {
+      return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+    }
+
+    const job = result.rows[0];
+    const title = `${job.title} @ ${job.company}`;
+    const description = `Apply for ${job.title} at ${job.company}. Location: ${job.location}. Salary: ₹${(job.salary_min/1000).toFixed(0)}k - ₹${(job.salary_max/1000).toFixed(0)}k | Verified Job on INTERN_OS`;
+    
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const imageUrl = `${protocol}://${host}/api/jobs/${id}/og-image`;
+    const pageUrl = `${protocol}://${host}/jobs/${id}`;
+
+    // 2. Read index.html
+    let htmlPath = path.join(process.cwd(), 'dist', 'index.html');
+    if (!fs.existsSync(htmlPath)) {
+        htmlPath = path.join(process.cwd(), 'index.html');
+    }
+
+    let html = fs.readFileSync(htmlPath, 'utf8');
+
+    // 3. Inject Meta Tags
+    const metaTags = `
+    <!-- Primary Meta Tags -->
+    <title>${title} | INTERN_OS</title>
+    <meta name="title" content="${title} | INTERN_OS">
+    <meta name="description" content="${description}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="${pageUrl}">
+    <meta property="twitter:title" content="${title}">
+    <meta property="twitter:description" content="${description}">
+    <meta property="twitter:image" content="${imageUrl}">
+    `;
+
+    html = html.replace('</head>', `${metaTags}</head>`);
+    res.send(html);
+
+  } catch (error) {
+    console.error('Job Meta Injection Error:', error);
+    res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+  }
+});
+
+// --- API ENDPOINT: Job OG Image (Generate Brutalist SVG) ---
+app.get('/api/jobs/:id/og-image', async (req, res) => {
+  try {
+    if (!dbInitialized) await initDB();
+    if (!db) return res.status(500).send('Database Error');
+
+    const { id } = req.params;
+    const result = await db.execute({
+      sql: 'SELECT title, company, location, salary_min, salary_max, internship_type FROM jobs WHERE id = ?',
+      args: [id]
+    });
+
+    if (result.rows.length === 0) return res.status(404).send('Not Found');
+    const job = result.rows[0];
+
+    // Create a Brutalist SVG Social Card
+    const svg = `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="630" fill="#f0f0f0" />
+      <rect x="20" y="20" width="1160" height="590" fill="none" stroke="black" stroke-width="12" />
+      
+      <!-- Top Section: Company -->
+      <rect x="60" y="60" width="400" height="60" fill="black" />
+      <text x="80" y="105" font-family="monospace" font-size="32" font-weight="bold" fill="#fff500" text-transform="uppercase">
+        AT ${job.company.toUpperCase()}
+      </text>
+
+      <!-- Main Title -->
+      <text x="60" y="240" font-family="monospace" font-size="80" font-weight="900" fill="black" style="text-transform: uppercase;">
+        ${job.title.toUpperCase()}
+      </text>
+
+      <!-- Divider -->
+      <line x1="60" y1="280" x2="1140" y2="280" stroke="black" stroke-width="8" />
+
+      <!-- Stats Grid -->
+      <rect x="60" y="320" width="1080" height="200" fill="white" stroke="black" stroke-width="6" />
+      
+      <!-- Stats Labels -->
+      <text x="90" y="360" font-family="monospace" font-size="20" font-weight="bold" fill="gray" text-transform="uppercase">COMPENSATION (CASH)</text>
+      <text x="90" y="420" font-family="monospace" font-size="48" font-weight="black" fill="#15803d">₹${(job.salary_min/1000).toFixed(0)}K - ₹${(job.salary_max/1000).toFixed(0)}K</text>
+      
+      <text x="600" y="360" font-family="monospace" font-size="20" font-weight="bold" fill="gray" text-transform="uppercase">LOCATION / TYPE</text>
+      <text x="600" y="420" font-family="monospace" font-size="40" font-weight="black" fill="black">${job.location.toUpperCase()}</text>
+      <text x="600" y="470" font-family="monospace" font-size="24" font-weight="bold" fill="gray">${job.internship_type?.toUpperCase() || 'INTERNSHIP'}</text>
+
+      <!-- Footer -->
+      <rect x="60" y="550" width="300" height="40" fill="#2a2aff" />
+      <text x="80" y="580" font-family="monospace" font-size="20" font-weight="bold" fill="white">VERIFIED BY ADMIN</text>
+      
+      <text x="1140" y="580" font-family="monospace" font-size="40" font-weight="black" fill="black" text-anchor="end">INTERN_OS</text>
+    </svg>
+    `;
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(svg);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- API ENDPOINT: JOBS ---
 
 // GET All Active Jobs (Public)
