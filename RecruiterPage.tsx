@@ -48,7 +48,7 @@ export default function RecruiterPage() {
               </p>
 
               <a
-                href="mailto:contact@internos.com"
+                href="mailto:contactbrianroy@gmail.com"
                 className="inline-block w-full"
               >
                 <BrutalButton className="w-full py-4 text-xl">
