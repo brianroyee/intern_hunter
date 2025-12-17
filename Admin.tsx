@@ -566,7 +566,7 @@ export default function Admin() {
 
       {/* Stats */}
       <div className="max-w-6xl mx-auto mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        {activeTab === "applications" ? (
+        {activeTab === "applications" && (
           <>
             <div className="border-4 border-black bg-brutal-blue text-white p-4">
               <p className="text-4xl font-black">{applications.length}</p>
@@ -591,7 +591,8 @@ export default function Admin() {
               <p className="text-xs uppercase">Departments</p>
             </div>
           </>
-        ) : (
+        )}
+        {activeTab === "blogs" && (
           <div className="col-span-4 border-4 border-black bg-white p-4 text-center">
             <p className="font-bold text-xl uppercase">
               {editingBlogId ? "EDITING MODE" : "CREATING NEW CONTENT"}
@@ -639,7 +640,7 @@ export default function Admin() {
 
       {/* Applications List */}
       <main className="max-w-6xl mx-auto">
-        {activeTab === "applications" ? (
+        {activeTab === "applications" && (
           <>
             {applications.length === 0 && !loading ? (
               <BrutalBox className="text-center py-16">
@@ -809,7 +810,8 @@ export default function Admin() {
               </div>
             )}
           </>
-        ) : (
+        )}
+        {activeTab === "blogs" && (
           <div className="space-y-12">
             <BrutalBox
               title={editingBlogId ? "EDIT_LOG_ENTRY" : "NEW_LOG_ENTRY"}
