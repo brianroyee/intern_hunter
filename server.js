@@ -175,7 +175,7 @@ app.post('/api/blogs', upload.single('image'), async (req, res) => {
   }
 });
 
-// --- API ENDPOINT: Get All Blogs ---
+// --- API ENDPOINT: Get All Blogs (Optimized: No Images) ---
 app.get('/api/blogs', async (req, res) => {
   try {
     if (!dbInitialized) {
@@ -184,10 +184,81 @@ app.get('/api/blogs', async (req, res) => {
     }
     if (!db) return res.status(500).json({ error: 'Database not configured' });
 
-    const result = await db.execute('SELECT * FROM blog_posts ORDER BY createdAt DESC');
+    // Exclude imageBase64 to speed up loading
+    const result = await db.execute('SELECT id, title, excerpt, content, author, createdAt FROM blog_posts ORDER BY createdAt DESC');
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API ENDPOINT: Get Blog Image ---
+app.get('/api/blogs/:id/image', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+    const { id } = req.params;
+    const result = await db.execute({
+      sql: 'SELECT imageBase64 FROM blog_posts WHERE id = ?',
+      args: [id]
+    });
+
+    if (result.rows.length === 0 || !result.rows[0].imageBase64) {
+      return res.status(404).send('Image not found');
+    }
+
+    const imgBuffer = Buffer.from(result.rows[0].imageBase64, 'base64');
+    res.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Content-Length': imgBuffer.length
+    });
+    res.end(imgBuffer); 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API ENDPOINT: Delete Blog Post ---
+app.delete('/api/blogs/:id', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+    const { id } = req.params;
+    await db.execute({
+      sql: 'DELETE FROM blog_posts WHERE id = ?',
+      args: [id]
+    });
+    res.json({ success: true, message: 'Blog post deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API ENDPOINT: Update Blog Post ---
+app.put('/api/blogs/:id', upload.single('image'), async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+    
+    const { id } = req.params;
+    const { title, excerpt, content, author } = req.body;
+    const file = req.file;
+
+    // Build query dynamically based on whether image is updated
+    let sql = 'UPDATE blog_posts SET title = ?, excerpt = ?, content = ?, author = ?';
+    const args = [title, excerpt, content, author];
+
+    if (file) {
+      const imageBase64 = file.buffer.toString('base64');
+      sql += ', imageBase64 = ?';
+      args.push(imageBase64);
+    }
+
+    sql += ' WHERE id = ?';
+    args.push(id);
+
+    await db.execute({ sql, args });
+    res.json({ success: true, message: 'Blog post updated' });
+  } catch (error) {
+    console.error('Blog Update Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

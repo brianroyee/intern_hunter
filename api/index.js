@@ -188,7 +188,7 @@ module.exports = async (req, res) => {
 
     // --- BLOG ENDPOINTS ---
 
-    // Get All Blogs
+    // Get All Blogs (Optimized)
     if (url === '/api/blogs' && req.method === 'GET') {
       if (!dbInitialized) {
         await initDB();
@@ -196,8 +196,91 @@ module.exports = async (req, res) => {
       }
       if (!db) return res.status(500).json({ error: 'Database not configured' });
 
-      const result = await db.execute('SELECT * FROM blog_posts ORDER BY createdAt DESC');
+      const result = await db.execute('SELECT id, title, excerpt, content, author, createdAt FROM blog_posts ORDER BY createdAt DESC');
       return res.status(200).json(result.rows);
+    }
+
+    // Get Blog Image
+    if (url.match(/^\/api\/blogs\/\d+\/image$/) && req.method === 'GET') {
+      const id = url.split('/api/blogs/')[1].split('/')[0];
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      try {
+        const result = await db.execute({
+          sql: 'SELECT imageBase64 FROM blog_posts WHERE id = ?',
+          args: [id]
+        });
+
+        if (result.rows.length === 0 || !result.rows[0].imageBase64) {
+          return res.status(404).send('Image not found');
+        }
+
+        const imgBuffer = Buffer.from(result.rows[0].imageBase64, 'base64');
+        res.setHeader('Content-Type', 'image/png');
+        return res.send(imgBuffer);
+      } catch (error) {
+        return res.status(500).json({ error: error.message });
+      }
+    }
+
+    // Delete Blog Post
+    if (url.match(/^\/api\/blogs\/\d+$/) && req.method === 'DELETE') {
+      const id = url.split('/api/blogs/')[1];
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+      
+      try {
+        await db.execute({
+          sql: 'DELETE FROM blog_posts WHERE id = ?',
+          args: [id]
+        });
+        return res.status(200).json({ success: true, message: 'Blog post deleted' });
+      } catch (error) {
+        return res.status(500).json({ error: error.message });
+      }
+    }
+
+    // Update Blog Post
+    if (url.match(/^\/api\/blogs\/\d+$/) && req.method === 'PUT') {
+      const id = url.split('/api/blogs/')[1];
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+      const contentType = req.headers['content-type'] || '';
+      let fields = {};
+      let file = null;
+
+      if (contentType.includes('multipart/form-data')) {
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+        const rawBody = Buffer.concat(chunks).toString('binary');
+        const parsed = parseMultipart(rawBody, contentType);
+        fields = parsed.fields;
+        file = parsed.file;
+      } else {
+        fields = req.body || {};
+      }
+
+      const { title, excerpt, content, author } = fields;
+      
+      let sql = 'UPDATE blog_posts SET title = ?, excerpt = ?, content = ?, author = ?';
+      const args = [title, excerpt, content, author];
+
+      if (file && file.buffer) {
+        const imageBase64 = file.buffer.toString('base64');
+        sql += ', imageBase64 = ?';
+        args.push(imageBase64);
+      }
+
+      sql += ' WHERE id = ?';
+      args.push(id);
+
+      try {
+        await db.execute({ sql, args });
+        return res.status(200).json({ success: true });
+      } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+      }
     }
 
     // Create Blog Post

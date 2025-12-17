@@ -21,14 +21,18 @@ import {
   LogOut,
   PenTool,
   Image as ImageIcon,
+  Edit,
+  X,
 } from "lucide-react";
 
 interface BlogPost {
+  id?: number;
   title: string;
   excerpt: string;
   content: string;
   author: string;
   image: File | null;
+  createdAt?: string;
 }
 
 interface Application {
@@ -56,20 +60,24 @@ export default function Admin() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [storedPassword, setStoredPassword] = useState("");
 
-  // Blog State
-  const [activeTab, setActiveTab] = useState<"applications" | "blogs">(
-    "applications"
-  );
-  const [blogForm, setBlogForm] = useState<BlogPost>({
-    title: "",
-    excerpt: "",
-    content: "",
-    author: "ADMIN",
-    image: null,
-  });
-  const [isSubmittingBlog, setIsSubmittingBlog] = useState(false);
+  // Fetch blogs when tab changes
+  useEffect(() => {
+    if (activeTab === "blogs") {
+      fetchBlogs();
+    }
+  }, [activeTab]);
 
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+  const fetchBlogs = async () => {
+    try {
+      const response = await fetch(`${apiBase}/api/blogs`);
+      if (response.ok) {
+        const data = await response.json();
+        setBlogsList(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch blogs", error);
+    }
+  };
 
   const handleLogin = async () => {
     setLoginError(null);
@@ -180,29 +188,63 @@ export default function Admin() {
         formData.append("image", blogForm.image);
       }
 
-      const response = await fetch(`${apiBase}/api/blogs`, {
-        method: "POST",
+      const url = editingBlogId
+        ? `${apiBase}/api/blogs/${editingBlogId}`
+        : `${apiBase}/api/blogs`;
+
+      const method = editingBlogId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
         body: formData,
       });
 
       if (response.ok) {
-        alert("Blog Post Created! 🔥");
-        setBlogForm({
-          title: "",
-          excerpt: "",
-          content: "",
-          author: "ADMIN",
-          image: null,
-        });
+        alert(editingBlogId ? "Blog Updated! 📝" : "Blog Post Created! 🔥");
+        resetBlogForm();
+        fetchBlogs();
       } else {
-        alert("Failed to create post");
+        alert("Failed to save post");
       }
     } catch (error) {
       console.error(error);
-      alert("Error creating post");
+      alert("Error saving post");
     } finally {
       setIsSubmittingBlog(false);
     }
+  };
+
+  const handleEditBlog = (blog: BlogPost) => {
+    setBlogForm({
+      title: blog.title,
+      excerpt: blog.excerpt,
+      content: blog.content,
+      author: blog.author,
+      image: null, // Reset image input as we can't prefill file input
+    });
+    setEditingBlogId(blog.id!);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteBlog = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await fetch(`${apiBase}/api/blogs/${id}`, { method: "DELETE" });
+      fetchBlogs();
+    } catch (error) {
+      alert("Failed to delete post");
+    }
+  };
+
+  const resetBlogForm = () => {
+    setBlogForm({
+      title: "",
+      excerpt: "",
+      content: "",
+      author: "ADMIN",
+      image: null,
+    });
+    setEditingBlogId(null);
   };
 
   // Login Screen
@@ -332,7 +374,9 @@ export default function Admin() {
           </>
         ) : (
           <div className="col-span-4 border-4 border-black bg-white p-4 text-center">
-            <p className="font-bold text-xl uppercase">Creating New Content</p>
+            <p className="font-bold text-xl uppercase">
+              {editingBlogId ? "EDITING MODE" : "CREATING NEW CONTENT"}
+            </p>
             <p className="text-sm opacity-50">AUTHOR: {blogForm.author}</p>
           </div>
         )}

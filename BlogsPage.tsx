@@ -40,6 +40,8 @@ export default function BlogsPage() {
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
   return (
     <div className="min-h-screen bg-brutal-bg p-4 md:p-8 font-mono selection:bg-brutal-yellow selection:text-black">
       {/* Header */}
@@ -78,15 +80,18 @@ export default function BlogsPage() {
               <div key={post.id} className="animate-fade-in-up">
                 <BrutalBox title={`LOG_ENTRY_00${post.id}`}>
                   <div className="flex flex-col gap-4">
-                    {post.imageBase64 && (
+                    <div className="flex flex-col gap-4">
                       <div className="border-b-4 border-black pb-4 mb-2">
                         <img
-                          src={`data:image/png;base64,${post.imageBase64}`}
+                          src={`${apiBase}/api/blogs/${post.id}/image`}
                           alt={post.title}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                          }}
                           className="w-full h-64 object-cover border-4 border-black"
                         />
                       </div>
-                    )}
 
                     <div className="border-b-4 border-black pb-4">
                       <h2 className="text-3xl md:text-4xl font-black uppercase leading-tight mb-2 hover:text-brutal-blue transition-colors cursor-pointer">
