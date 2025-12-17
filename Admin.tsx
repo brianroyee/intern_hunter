@@ -60,6 +60,23 @@ export default function Admin() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [storedPassword, setStoredPassword] = useState("");
 
+  // Blog State
+  const [activeTab, setActiveTab] = useState<"applications" | "blogs">(
+    "applications"
+  );
+  const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
+  const [blogForm, setBlogForm] = useState<BlogPost>({
+    title: "",
+    excerpt: "",
+    content: "",
+    author: "ADMIN",
+    image: null,
+  });
+  const [isSubmittingBlog, setIsSubmittingBlog] = useState(false);
+  const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
+
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
   // Fetch blogs when tab changes
   useEffect(() => {
     if (activeTab === "blogs") {
@@ -582,61 +599,129 @@ export default function Admin() {
             )}
           </>
         ) : (
-          <BrutalBox title="BLOG_WRITER_V1" className="bg-white">
-            <div className="grid gap-6">
-              <BrutalInput
-                label="Article Title"
-                placeholder="ENTER TITLE UPPERCASE PREFERRED"
-                value={blogForm.title}
-                onChange={(e) =>
-                  setBlogForm({ ...blogForm, title: e.target.value })
-                }
-              />
-              <BrutalInput
-                label="Excerpt / TLDR"
-                placeholder="SHORT SUMMARY FOR THE LISTING"
-                value={blogForm.excerpt}
-                onChange={(e) =>
-                  setBlogForm({ ...blogForm, excerpt: e.target.value })
-                }
-              />
-              <BrutalTextArea
-                label="Main Content"
-                placeholder="WRITE YOUR THOUGHTS. MARKDOWN SUPPORTED."
-                className="min-h-[300px]"
-                value={blogForm.content}
-                onChange={(e) =>
-                  setBlogForm({ ...blogForm, content: e.target.value })
-                }
-              />
-
-              <div className="border-4 border-black p-4 bg-gray-50">
-                <label className="font-bold uppercase block mb-2 flex items-center gap-2">
-                  <ImageIcon size={20} /> Cover Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setBlogForm({ ...blogForm, image: e.target.files[0] });
-                    }
-                  }}
-                  className="block w-full text-sm font-mono file:mr-4 file:py-2 file:px-4 file:border-4 file:border-black file:text-sm file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
+          <div className="space-y-12">
+            <BrutalBox
+              title={editingBlogId ? "EDIT_LOG_ENTRY" : "NEW_LOG_ENTRY"}
+              className="bg-white"
+            >
+              <div className="grid gap-6">
+                {editingBlogId && (
+                  <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-yellow-800">
+                        YOU ARE EDITING AN EXISTING POST
+                      </p>
+                      <p className="text-sm text-yellow-700">
+                        ID: {editingBlogId}
+                      </p>
+                    </div>
+                    <button
+                      onClick={resetBlogForm}
+                      className="text-black font-bold flex items-center gap-1 hover:underline"
+                    >
+                      <X size={16} /> CANCEL EDIT
+                    </button>
+                  </div>
+                )}
+                <BrutalInput
+                  label="Article Title"
+                  placeholder="ENTER TITLE UPPERCASE PREFERRED"
+                  value={blogForm.title}
+                  onChange={(e) =>
+                    setBlogForm({ ...blogForm, title: e.target.value })
+                  }
                 />
-              </div>
+                <BrutalInput
+                  label="Excerpt / TLDR"
+                  placeholder="SHORT SUMMARY FOR THE LISTING"
+                  value={blogForm.excerpt}
+                  onChange={(e) =>
+                    setBlogForm({ ...blogForm, excerpt: e.target.value })
+                  }
+                />
+                <BrutalTextArea
+                  label="Main Content"
+                  placeholder="WRITE YOUR THOUGHTS. MARKDOWN SUPPORTED."
+                  className="min-h-[300px]"
+                  value={blogForm.content}
+                  onChange={(e) =>
+                    setBlogForm({ ...blogForm, content: e.target.value })
+                  }
+                />
 
-              <div className="mt-4">
-                <BrutalButton
-                  onClick={handleBlogSubmit}
-                  loading={isSubmittingBlog}
-                  className="w-full text-xl py-4"
-                >
-                  PUBLISH TO NETWORK
-                </BrutalButton>
+                <div className="border-4 border-black p-4 bg-gray-50">
+                  <label className="font-bold uppercase block mb-2 flex items-center gap-2">
+                    <ImageIcon size={20} /> Cover Image
+                  </label>
+                  <p className="text-xs mb-2 opacity-50">
+                    Upload new image to replace existing one
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBlogForm({ ...blogForm, image: e.target.files[0] });
+                      }
+                    }}
+                    className="block w-full text-sm font-mono file:mr-4 file:py-2 file:px-4 file:border-4 file:border-black file:text-sm file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <BrutalButton
+                    onClick={handleBlogSubmit}
+                    loading={isSubmittingBlog}
+                    className="w-full text-xl py-4"
+                  >
+                    {editingBlogId ? "UPDATE LOG ENTRY" : "PUBLISH TO NETWORK"}
+                  </BrutalButton>
+                </div>
+              </div>
+            </BrutalBox>
+
+            {/* List of Existing Blogs */}
+            <div className="border-t-8 border-black pt-12">
+              <h2 className="text-3xl font-black uppercase mb-8 flex items-center gap-2">
+                <Terminal /> EXISTING LOGS DATABASE
+              </h2>
+              <div className="space-y-4">
+                {blogsList.map((blog) => (
+                  <div
+                    key={blog.id}
+                    className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4"
+                  >
+                    <div>
+                      <h3 className="font-black text-xl">{blog.title}</h3>
+                      <p className="text-sm opacity-50 mb-2">
+                        ID: {blog.id} // AUTHOR: {blog.author}
+                      </p>
+                      <p className="mb-2 line-clamp-2">{blog.excerpt}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleEditBlog(blog)}
+                        className="bg-black text-white px-4 py-2 font-bold hover:bg-brutal-blue transition-colors flex items-center gap-2 h-fit"
+                      >
+                        <Edit size={16} /> EDIT
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBlog(blog.id!)}
+                        className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
+                      >
+                        <Trash2 size={16} /> DELETE
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {blogsList.length === 0 && (
+                  <p className="opacity-50 italic">
+                    No logs found in the archives.
+                  </p>
+                )}
               </div>
             </div>
-          </BrutalBox>
+          </div>
         )}
       </main>
 
