@@ -1312,37 +1312,97 @@ export default function Admin() {
               </h2>
               <div className="space-y-4">
                 {jobsList.map((job) => (
-                  <div
-                    key={job.id}
-                    className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4"
-                  >
-                    <div>
-                      <h3 className="font-black text-xl">
-                        {job.title} @ {job.company}
-                      </h3>
-                      <div className="flex gap-2 my-2 text-xs font-bold font-mono">
-                        <span className="bg-green-100 px-2 py-1 border border-black">
-                          ₹{job.salary_min.toLocaleString()} - ₹
-                          {job.salary_max.toLocaleString()}
-                        </span>
-                        <span className="bg-purple-100 px-2 py-1 border border-black">
-                          {job.equity || "NO EQUITY"}
-                        </span>
-                        <span className="bg-gray-100 px-2 py-1 border border-black">
-                          {job.location}
-                        </span>
+                  <React.Fragment key={job.id}>
+                    <div className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4">
+                      <div>
+                        <h3 className="font-black text-xl">
+                          {job.title} @ {job.company}
+                        </h3>
+                        <div className="flex gap-2 my-2 text-xs font-bold font-mono">
+                          <span className="bg-green-100 px-2 py-1 border border-black">
+                            ₹{job.salary_min.toLocaleString()} - ₹
+                            {job.salary_max.toLocaleString()}
+                          </span>
+                          <span className="bg-purple-100 px-2 py-1 border border-black">
+                            {job.equity || "NO EQUITY"}
+                          </span>
+                          <span className="bg-gray-100 px-2 py-1 border border-black">
+                            {job.location}
+                          </span>
+                        </div>
+                        <p className="opacity-50 text-sm">ID: {job.id}</p>
                       </div>
-                      <p className="opacity-50 text-sm">ID: {job.id}</p>
+                      <div className="shrink-0 flex flex-col gap-2">
+                        <button
+                          onClick={() => handleEditJob(job)}
+                          className="bg-brutal-yellow text-black px-4 py-2 font-bold hover:bg-white border-2 border-black transition-colors flex items-center gap-2 h-fit mb-2"
+                        >
+                          <Edit size={16} /> EDIT
+                        </button>
+                        <button
+                          onClick={() =>
+                            setShowReferralsFor(
+                              showReferralsFor === job.id ? null : job.id!
+                            )
+                          }
+                          className="bg-blue-600 text-white px-4 py-2 font-bold hover:bg-black border-2 border-black transition-colors flex items-center gap-2 h-fit mb-2"
+                        >
+                          <Users size={16} /> REFERRALS (
+                          {referrals.filter((r) => r.job_id === job.id).length})
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.id!)}
+                          className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
+                        >
+                          <Trash2 size={16} /> DELETE
+                        </button>
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      <button
-                        onClick={() => handleDeleteJob(job.id!)}
-                        className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
-                      >
-                        <Trash2 size={16} /> DELETE
-                      </button>
-                    </div>
-                  </div>
+
+                    {/* REFERRALS EXPAND */}
+                    {showReferralsFor === job.id && (
+                      <div className="bg-gray-100 border-4 border-black p-4 mb-4 -mt-4">
+                        <h4 className="font-bold border-b-2 border-black mb-2">
+                          CANDIDATES
+                        </h4>
+                        {referrals.filter((r) => r.job_id === job.id).length ===
+                        0 ? (
+                          <p className="opacity-50">No referrals yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {referrals
+                              .filter((r) => r.job_id === job.id)
+                              .map((ref) => (
+                                <div
+                                  key={ref.id}
+                                  className="bg-white border-2 border-black p-2 text-sm"
+                                >
+                                  <p>
+                                    <strong>{ref.name}</strong> ({ref.email})
+                                  </p>
+                                  <div className="flex gap-2 text-xs">
+                                    <a
+                                      href={ref.linkedin}
+                                      target="_blank"
+                                      className="underline text-blue-600"
+                                    >
+                                      LinkedIn
+                                    </a>
+                                    <span>•</span>
+                                    <span>
+                                      {new Date(
+                                        ref.created_at
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 italic">"{ref.why_me}"</p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
                 {jobsList.length === 0 && (
                   <p className="opacity-50 italic">No active job listings.</p>
