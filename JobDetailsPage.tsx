@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   CheckCircle,
   X,
+  Linkedin,
+  Twitter,
+  Instagram,
 } from "lucide-react";
 
 interface Job {
@@ -30,6 +33,9 @@ interface Job {
   tags: string[];
   description: string;
   apply_url: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  instagram_url?: string;
 }
 
 export default function JobDetailsPage() {
@@ -158,6 +164,36 @@ export default function JobDetailsPage() {
                 className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
               >
                 <Globe size={18} /> {job.company} Website
+              </a>
+            )}
+            {job.linkedin_url && (
+              <a
+                href={job.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-brutal-blue hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+              >
+                <Linkedin size={18} /> LinkedIn
+              </a>
+            )}
+            {job.twitter_url && (
+              <a
+                href={job.twitter_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+              >
+                <Twitter size={18} />
+              </a>
+            )}
+            {job.instagram_url && (
+              <a
+                href={job.instagram_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-pink-600 hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+              >
+                <Instagram size={18} />
               </a>
             )}
           </div>

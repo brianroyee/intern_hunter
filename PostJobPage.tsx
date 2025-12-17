@@ -104,6 +104,9 @@ export default function PostJobPage() {
     title: "",
     company: "",
     company_url: "",
+    linkedin_url: "",
+    twitter_url: "",
+    instagram_url: "",
     location: "",
     locationType: "Remote",
     internshipType: "Summer Internship",
@@ -131,8 +134,15 @@ export default function PostJobPage() {
     setError(null);
     try {
       // Basic validation
-      if (!jobForm.title || !jobForm.company || !jobForm.description) {
-        throw new Error("Missing required fields: Title, Company, Description");
+      if (
+        !jobForm.title ||
+        !jobForm.company ||
+        !jobForm.description ||
+        !jobForm.linkedin_url
+      ) {
+        throw new Error(
+          "Missing required fields: Title, Company, Description, LinkedIn URL"
+        );
       }
 
       const payload = {
@@ -254,6 +264,34 @@ export default function PostJobPage() {
                 value={jobForm.company_url}
                 onChange={(e) =>
                   setJobForm({ ...jobForm, company_url: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Social Media Links */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <BrutalInput
+                label="LinkedIn URL *"
+                placeholder="linkedin.com/company/..."
+                value={jobForm.linkedin_url}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, linkedin_url: e.target.value })
+                }
+              />
+              <BrutalInput
+                label="Twitter / X URL"
+                placeholder="twitter.com/..."
+                value={jobForm.twitter_url}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, twitter_url: e.target.value })
+                }
+              />
+              <BrutalInput
+                label="Instagram URL"
+                placeholder="instagram.com/..."
+                value={jobForm.instagram_url}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, instagram_url: e.target.value })
                 }
               />
             </div>

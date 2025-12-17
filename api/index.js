@@ -74,6 +74,9 @@ async function initDB() {
         status TEXT DEFAULT 'pending', -- pending, active, rejected
         admin_rating REAL, -- New: Admin Rating
         admin_comments TEXT, -- New: Admin Comments
+        linkedin_url TEXT,
+        twitter_url TEXT,
+        instagram_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -88,7 +91,10 @@ async function initDB() {
         "ALTER TABLE jobs ADD COLUMN discipline TEXT",
         "ALTER TABLE jobs ADD COLUMN compensation_type TEXT",
         "ALTER TABLE jobs ADD COLUMN admin_rating REAL",
-        "ALTER TABLE jobs ADD COLUMN admin_comments TEXT"
+        "ALTER TABLE jobs ADD COLUMN admin_comments TEXT",
+        "ALTER TABLE jobs ADD COLUMN linkedin_url TEXT",
+        "ALTER TABLE jobs ADD COLUMN twitter_url TEXT",
+        "ALTER TABLE jobs ADD COLUMN instagram_url TEXT"
     ];
 
     for (const sql of migrations) {
@@ -419,9 +425,11 @@ app.post('/api/jobs', async (req, res) => {
         stipend_min, 
         stipend_max, 
         equity, 
-        tags, 
         description, 
-        apply_url 
+        apply_url,
+        linkedin_url,
+        twitter_url,
+        instagram_url
     } = req.body;
 
     // Use stipend values for salary columns if present
@@ -432,8 +440,9 @@ app.post('/api/jobs', async (req, res) => {
       sql: `INSERT INTO jobs (
         title, company, company_url, location, 
         location_type, internship_type, duration, academic_year, discipline, compensation_type,
-        salary_min, salary_max, equity, tags, description, apply_url, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        salary_min, salary_max, equity, tags, description, apply_url, 
+        linkedin_url, twitter_url, instagram_url, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       args: [
         title, 
         company, 
@@ -450,7 +459,10 @@ app.post('/api/jobs', async (req, res) => {
         equity || '', 
         JSON.stringify(tags || []), 
         description, 
-        apply_url || ''
+        apply_url || '',
+        linkedin_url || '',
+        twitter_url || '',
+        instagram_url || ''
       ]
     });
     res.json({ success: true, id: result.lastInsertRowid.toString(), message: "Job submitted for review" });
