@@ -473,6 +473,60 @@ app.post('/api/jobs', async (req, res) => {
   }
 });
 
+// PUT Update Job (Admin Edit)
+app.put('/api/jobs/:id', async (req, res) => {
+    try {
+        if (!db) return res.status(500).json({ error: 'Database not configured' });
+        const { id } = req.params;
+        const { 
+            password,
+            title, 
+            company, 
+            company_url, 
+            location, 
+            locationType, 
+            internshipType, 
+            duration, 
+            academicYear, 
+            discipline,
+            compensationType, 
+            salary_min, 
+            salary_max,
+            equity, 
+            tags, 
+            description, 
+            apply_url,
+            linkedin_url,
+            twitter_url,
+            instagram_url
+        } = req.body;
+
+        const adminPassword = (process.env.ADMIN_PASSWORD || "").trim();
+        if ((password || "").trim() !== adminPassword) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        await db.execute({
+            sql: `UPDATE jobs SET 
+                title=?, company=?, company_url=?, location=?, location_type=?, 
+                internship_type=?, duration=?, academic_year=?, discipline=?, compensation_type=?,
+                salary_min=?, salary_max=?, equity=?, tags=?, description=?, apply_url=?,
+                linkedin_url=?, twitter_url=?, instagram_url=?
+                WHERE id = ?`,
+            args: [
+                title, company, company_url, location, locationType, 
+                internshipType, duration, academicYear, discipline, compensationType,
+                salary_min, salary_max, equity, JSON.stringify(tags || []), description, apply_url,
+                linkedin_url, twitter_url, instagram_url,
+                id
+            ]
+        });
+        res.json({ success: true, message: "Job updated" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- ADMIN JOB ROUTES ---
 
 // GET Pending Jobs (Admin)
@@ -678,6 +732,24 @@ app.delete('/api/applications/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// GET Referrals (Admin)
+app.get('/api/admin/referrals', async (req, res) => {
+    try {
+        if (!db) return res.status(500).json({ error: 'Database not configured' });
+        
+        // Join with jobs to get job title
+        const result = await db.execute(`
+            SELECT r.*, j.title as job_title, j.company 
+            FROM referrals r 
+            LEFT JOIN jobs j ON r.job_id = j.id 
+            ORDER BY r.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // For local development

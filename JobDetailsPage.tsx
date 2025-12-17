@@ -36,6 +36,8 @@ interface Job {
   linkedin_url?: string;
   twitter_url?: string;
   instagram_url?: string;
+  created_at?: string;
+  location_type?: string;
 }
 
 export default function JobDetailsPage() {
@@ -156,51 +158,78 @@ export default function JobDetailsPage() {
             <h1 className="text-4xl md:text-6xl font-black uppercase leading-none">
               {job.title}
             </h1>
-            {job.company_url && (
-              <a
-                href={job.company_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
-              >
-                <Globe size={18} /> {job.company} Website
-              </a>
-            )}
-            {job.linkedin_url && (
-              <a
-                href={job.linkedin_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-brutal-blue hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
-              >
-                <Linkedin size={18} /> LinkedIn
-              </a>
-            )}
-            {job.twitter_url && (
-              <a
-                href={job.twitter_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
-              >
-                <Twitter size={18} />
-              </a>
-            )}
-            {job.instagram_url && (
-              <a
-                href={job.instagram_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-pink-600 hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
-              >
-                <Instagram size={18} />
-              </a>
-            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              {job.company_url ? (
+                <a
+                  href={job.company_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+                >
+                  <Globe size={18} /> {job.company} Website
+                </a>
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 bg-gray-200 text-gray-500 font-bold uppercase shrink-0 w-fit cursor-not-allowed"
+                >
+                  <Globe size={18} />{" "}
+                  <span className="line-through">WEBSITE</span>
+                </button>
+              )}
+              {job.linkedin_url && (
+                <a
+                  href={job.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-brutal-blue hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+                >
+                  <Linkedin size={18} /> LinkedIn
+                </a>
+              )}
+              {job.twitter_url && (
+                <a
+                  href={job.twitter_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+                >
+                  <Twitter size={18} />
+                </a>
+              )}
+              {job.instagram_url && (
+                <a
+                  href={job.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-pink-600 hover:text-white transition-colors font-bold uppercase shrink-0 w-fit"
+                >
+                  <Instagram size={18} />
+                </a>
+              )}
+            </div>
           </div>
 
-          <p className="text-xl font-bold uppercase opacity-60 flex items-center gap-2">
-            <Briefcase /> AT {job.company}
-          </p>
+          <div className="flex flex-col gap-1 mt-2">
+            <p className="text-xl font-bold uppercase opacity-60 flex items-center gap-2">
+              <Briefcase /> AT {job.company}
+            </p>
+            <p className="text-sm font-bold opacity-40 uppercase">
+              POSTED{" "}
+              {Math.floor(
+                (new Date().getTime() -
+                  new Date(job.created_at || "").getTime()) /
+                  (1000 * 3600 * 24)
+              ) < 1
+                ? "Today"
+                : `${Math.floor(
+                    (new Date().getTime() -
+                      new Date(job.created_at || "").getTime()) /
+                      (1000 * 3600 * 24)
+                  )}d ago`}
+            </p>
+          </div>
         </div>
 
         {/* TRANSPARENCY GRID ("THE OFFER") */}
@@ -227,6 +256,9 @@ export default function JobDetailsPage() {
               Location Mode
             </p>
             <p className="text-lg md:text-2xl font-black">{job.location}</p>
+            <p className="text-sm font-bold opacity-50 uppercase">
+              {job.location_type || "Remote"}
+            </p>
           </div>
           <div className="p-4 text-center md:text-left">
             <p className="text-xs font-bold uppercase opacity-50 mb-1">

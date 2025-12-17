@@ -54,6 +54,13 @@ interface JobPost {
   academic_year?: string;
   discipline?: string;
   compensation_type?: string;
+  locationType?: string; // For form handling
+  internshipType?: string; // For form handling
+  academicYear?: string; // For form handling
+  compensationType?: string; // For form handling
+  linkedin_url?: string;
+  twitter_url?: string;
+  instagram_url?: string;
   admin_rating?: number;
   admin_comments?: string;
 }
@@ -71,6 +78,19 @@ interface Application {
   cvFilename: string | null;
   subscribeToNewsletter: number;
   submittedAt: string;
+}
+
+interface Referral {
+  id: number;
+  job_id: number;
+  name: string;
+  email: string;
+  linkedin: string;
+  why_me: string;
+  status: string;
+  created_at: string;
+  job_title?: string;
+  company?: string;
 }
 
 export default function Admin() {
@@ -117,8 +137,31 @@ export default function Admin() {
     apply_url: "",
   });
   const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [editingJobId, setEditingJobId] = useState<number | null>(null);
+  const [showReferralsFor, setShowReferralsFor] = useState<number | null>(null);
 
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
+  const resetBlogForm = () => {
+    setBlogForm({
+      title: "",
+      excerpt: "",
+      content: "",
+      author: "ADMIN",
+      image: null,
+    });
+    setEditingBlogId(null);
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const days = Math.floor(
+      (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 3600 * 24)
+    );
+    if (days < 1) return "Today";
+    if (days === 1) return "Yesterday";
+    return `${days} days ago`;
+  };
 
   // Fetch blogs when tab changes
   useEffect(() => {
@@ -126,8 +169,21 @@ export default function Admin() {
       fetchBlogs();
     } else if (activeTab === "jobs") {
       fetchJobs();
+      fetchReferrals();
     }
   }, [activeTab]);
+
+  const fetchReferrals = async () => {
+    try {
+      const response = await fetch(`${apiBase}/api/admin/referrals`);
+      if (response.ok) {
+        const data = await response.json();
+        setReferrals(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch referrals", error);
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -376,34 +432,88 @@ export default function Admin() {
     }
     setIsSubmittingJob(true);
     try {
-      const response = await fetch(`${apiBase}/api/jobs`, {
-        method: "POST",
+      const url = editingJobId
+        ? `${apiBase}/api/jobs/${editingJobId}`
+        : `${apiBase}/api/jobs`;
+      const method = editingJobId ? "PUT" : "POST";
+
+      const payload = {
+        ...jobForm,
+        password: storedPassword, // Required for PUT (Admin check)
+      };
+
+      const response = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jobForm),
+        body: JSON.stringify(payload),
       });
       if (response.ok) {
-        alert("Job Posted! 💼");
+        alert(editingJobId ? "Job Updated! 💼" : "Job Posted! 💼");
         setJobForm({
           title: "",
           company: "",
           company_url: "",
           location: "REMOTE",
+          locationType: "Remote",
           salary_min: 0,
           salary_max: 0,
           equity: "",
           tags: [],
           description: "",
           apply_url: "",
+          linkedin_url: "",
+          twitter_url: "",
+          instagram_url: "",
         });
+        setEditingJobId(null);
         fetchJobs();
       } else {
-        alert("Failed to post job");
+        alert("Failed to save job");
       }
     } catch (error) {
       alert("Error posting job");
     } finally {
       setIsSubmittingJob(false);
     }
+  };
+
+  const handleEditJob = (job: JobPost) => {
+    setJobForm({
+      ...job,
+      tags: Array.isArray(job.tags) ? job.tags : [],
+      location: job.location || "",
+      locationType: job.location_type || "Remote",
+      internship_type: job.internship_type || "Summer Internship",
+      duration: job.duration || "3 Months",
+      academic_year: job.academic_year || "Any Year",
+      discipline: job.discipline || "Other",
+      compensation_type: job.compensation_type || "Paid Stipend",
+      linkedin_url: (job as any).linkedin_url || "",
+      twitter_url: (job as any).twitter_url || "",
+      instagram_url: (job as any).instagram_url || "",
+    });
+    setEditingJobId(job.id!);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditJob = () => {
+    setJobForm({
+      title: "",
+      company: "",
+      company_url: "",
+      location: "REMOTE",
+      locationType: "Remote",
+      salary_min: 0,
+      salary_max: 0,
+      equity: "",
+      tags: [],
+      description: "",
+      apply_url: "",
+      linkedin_url: "",
+      twitter_url: "",
+      instagram_url: "",
+    });
+    setEditingJobId(null);
   };
 
   const handleDeleteJob = async (id: number) => {
@@ -442,17 +552,6 @@ export default function Admin() {
       console.error(e);
       alert("ERROR RENORMALIZING");
     }
-  };
-
-  const resetBlogForm = () => {
-    setBlogForm({
-      title: "",
-      excerpt: "",
-      content: "",
-      author: "ADMIN",
-      image: null,
-    });
-    setEditingBlogId(null);
   };
 
   // Login Screen
@@ -1064,8 +1163,17 @@ export default function Admin() {
                   loading={isSubmittingJob}
                   className="w-full text-xl py-4"
                 >
-                  POST BOUNTY
+                  {editingJobId ? "UPDATE JOB" : "POST BOUNTY"}
                 </BrutalButton>
+
+                {editingJobId && (
+                  <BrutalButton
+                    onClick={cancelEditJob}
+                    className="w-full text-xl py-4 mt-4 bg-gray-200 text-black border-black"
+                  >
+                    CANCEL EDIT
+                  </BrutalButton>
+                )}
               </div>
             </BrutalBox>
 

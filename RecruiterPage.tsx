@@ -21,6 +21,7 @@ interface Job {
   equity: string;
   tags: string[];
   created_at: string;
+  location_type?: string;
 }
 
 export default function RecruiterPage() {
@@ -79,8 +80,7 @@ export default function RecruiterPage() {
 
     const matchesLocationType =
       locationType !== "Any"
-        ? job.location.toLowerCase().includes(locationType.toLowerCase()) ||
-          job.tags.includes(locationType)
+        ? (job.location_type || "Remote") === locationType
         : true;
 
     const matchesCompensation =
@@ -256,70 +256,84 @@ export default function RecruiterPage() {
                 </BrutalButton>
               </div>
             ) : (
-              filteredJobs.map((job) => (
-                <Link
-                  to={`/jobs/${job.id}`}
-                  key={job.id}
-                  className="block group"
-                >
-                  <div className="border-4 border-black bg-white p-6 transition-all hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-hard relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl select-none group-hover:opacity-20 transition-opacity">
-                      {job.company.substring(0, 2)}
-                    </div>
+              filteredJobs.map((job) => {
+                const timeAgo = Math.floor(
+                  (new Date().getTime() -
+                    new Date(job.created_at || "").getTime()) /
+                    (1000 * 3600 * 24)
+                );
+                const timeDisplay = timeAgo < 1 ? "Today" : `${timeAgo}d ago`;
 
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                      {/* Left: Role & Company */}
-                      <div className="space-y-2">
-                        <h3 className="text-2xl md:text-3xl font-black uppercase group-hover:text-brutal-blue transition-colors">
-                          {job.title}
-                        </h3>
-                        <p className="text-lg font-bold uppercase opacity-75 flex items-center gap-2">
-                          <Briefcase size={18} /> {job.company}
-                        </p>
+                return (
+                  <Link
+                    to={`/jobs/${job.id}`}
+                    key={job.id}
+                    className="block group"
+                  >
+                    <div className="border-4 border-black bg-white p-6 transition-all hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-hard relative overflow-hidden">
+                      <div className="absolute top-2 right-2 text-xs font-bold opacity-50 uppercase">
+                        POSTED {timeDisplay}
+                      </div>
+                      <div className="absolute top-0 right-0 p-2 opacity-10 font-black text-6xl select-none group-hover:opacity-20 transition-opacity">
+                        {job.company.substring(0, 2)}
                       </div>
 
-                      {/* Middle: Transparency Stats */}
-                      <div className="flex flex-wrap gap-3 md:gap-6 font-bold font-mono text-sm md:text-base">
-                        <div className="flex items-center gap-2 bg-green-100 px-3 py-1 border-2 border-green-900 text-green-900">
-                          <DollarSign size={16} />
-                          <span>
-                            ${(job.salary_min / 1000).toFixed(0)}k - $
-                            {(job.salary_max / 1000).toFixed(0)}k
-                          </span>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                        {/* Left: Role & Company */}
+                        <div className="space-y-2">
+                          <h3 className="text-2xl md:text-3xl font-black uppercase group-hover:text-brutal-blue transition-colors">
+                            {job.title}
+                          </h3>
+                          <p className="text-lg font-bold uppercase opacity-75 flex items-center gap-2">
+                            <Briefcase size={18} /> {job.company}
+                          </p>
                         </div>
-                        {job.equity && (
-                          <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 border-2 border-purple-900 text-purple-900">
-                            <span>{job.equity} EQ</span>
+
+                        {/* Middle: Transparency Stats */}
+                        <div className="flex flex-wrap gap-3 md:gap-6 font-bold font-mono text-sm md:text-base">
+                          <div className="flex items-center gap-2 bg-green-100 px-3 py-1 border-2 border-green-900 text-green-900">
+                            <DollarSign size={16} />
+                            <span>
+                              ${(job.salary_min / 1000).toFixed(0)}k - $
+                              {(job.salary_max / 1000).toFixed(0)}k
+                            </span>
                           </div>
-                        )}
-                        <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 border-2 border-gray-900">
-                          <MapPin size={16} />
-                          <span>{job.location}</span>
+                          {job.equity && (
+                            <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 border-2 border-purple-900 text-purple-900">
+                              <span>{job.equity} EQ</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 border-2 border-gray-900">
+                            <MapPin size={16} />
+                            <span>
+                              {job.location} ({job.location_type || "Remote"})
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right: Arrow */}
+                        <div className="hidden md:block">
+                          <div className="w-12 h-12 border-4 border-black flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                            <ArrowRight size={24} />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Right: Arrow */}
-                      <div className="hidden md:block">
-                        <div className="w-12 h-12 border-4 border-black flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
-                          <ArrowRight size={24} />
-                        </div>
+                      {/* Bottom: Tags */}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {job.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs font-bold border border-black px-2 py-1 uppercase opacity-60"
+                          >
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
-
-                    {/* Bottom: Tags */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {job.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs font-bold border border-black px-2 py-1 uppercase opacity-60"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                );
+              })
             )}
           </div>
         </div>
