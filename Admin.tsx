@@ -224,7 +224,7 @@ export default function Admin() {
             {blogForm.excerpt || "No excerpt..."}
           </div>
         </div>
-        <div className="prose prose-lg max-w-none font-sans prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
+        <div className="prose prose-lg max-w-none font-mono prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {blogForm.content || "*No content yet...*"}
           </ReactMarkdown>
