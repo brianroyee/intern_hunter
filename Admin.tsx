@@ -35,6 +35,21 @@ interface BlogPost {
   createdAt?: string;
 }
 
+interface JobPost {
+  id?: number;
+  title: string;
+  company: string;
+  company_url: string;
+  location: string;
+  salary_min: number;
+  salary_max: number;
+  equity: string;
+  tags: string[];
+  description: string;
+  apply_url: string;
+  created_at?: string;
+}
+
 interface Application {
   id: number;
   fullName: string;
@@ -61,7 +76,7 @@ export default function Admin() {
   const [storedPassword, setStoredPassword] = useState("");
 
   // Blog State
-  const [activeTab, setActiveTab] = useState<"applications" | "blogs">(
+  const [activeTab, setActiveTab] = useState<"applications" | "blogs" | "jobs">(
     "applications"
   );
   const [blogsList, setBlogsList] = useState<BlogPost[]>([]);
@@ -75,14 +90,44 @@ export default function Admin() {
   const [isSubmittingBlog, setIsSubmittingBlog] = useState(false);
   const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
 
+  // Job State
+  const [jobsList, setJobsList] = useState<JobPost[]>([]);
+  const [jobForm, setJobForm] = useState<JobPost>({
+    title: "",
+    company: "",
+    company_url: "",
+    location: "REMOTE",
+    salary_min: 0,
+    salary_max: 0,
+    equity: "",
+    tags: [],
+    description: "",
+    apply_url: "",
+  });
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
   // Fetch blogs when tab changes
   useEffect(() => {
     if (activeTab === "blogs") {
       fetchBlogs();
+    } else if (activeTab === "jobs") {
+      fetchJobs();
     }
   }, [activeTab]);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch(`${apiBase}/api/jobs`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobsList(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch jobs", error);
+    }
+  };
 
   const fetchBlogs = async () => {
     try {
@@ -253,6 +298,54 @@ export default function Admin() {
     }
   };
 
+  // JOB HANDLERS
+  const handleJobSubmit = async () => {
+    if (!jobForm.title || !jobForm.company || !jobForm.description) {
+      alert("Title, Company, and Description are required.");
+      return;
+    }
+    setIsSubmittingJob(true);
+    try {
+      const response = await fetch(`${apiBase}/api/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobForm),
+      });
+      if (response.ok) {
+        alert("Job Posted! 💼");
+        setJobForm({
+          title: "",
+          company: "",
+          company_url: "",
+          location: "REMOTE",
+          salary_min: 0,
+          salary_max: 0,
+          equity: "",
+          tags: [],
+          description: "",
+          apply_url: "",
+        });
+        fetchJobs();
+      } else {
+        alert("Failed to post job");
+      }
+    } catch (error) {
+      alert("Error posting job");
+    } finally {
+      setIsSubmittingJob(false);
+    }
+  };
+
+  const handleDeleteJob = async (id: number) => {
+    if (!confirm("Delete this job listing?")) return;
+    try {
+      await fetch(`${apiBase}/api/jobs/${id}`, { method: "DELETE" });
+      fetchJobs();
+    } catch (error) {
+      alert("Failed to delete job");
+    }
+  };
+
   const handleResequence = async () => {
     if (
       !confirm(
@@ -369,6 +462,17 @@ export default function Admin() {
                 >
                   <PenTool className="inline mr-2" size={16} />
                   Blog Editor
+                </button>
+                <button
+                  onClick={() => setActiveTab("jobs")}
+                  className={`px-4 py-2 font-bold uppercase border-2 border-white transition-colors ${
+                    activeTab === "jobs"
+                      ? "bg-white text-black"
+                      : "bg-black text-white hover:bg-gray-800"
+                  }`}
+                >
+                  <Briefcase className="inline mr-2" size={16} />
+                  Job Board
                 </button>
               </div>
             </div>
@@ -755,6 +859,184 @@ export default function Admin() {
                   <p className="opacity-50 italic">
                     No logs found in the archives.
                   </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* JOBS TAB CONTENT */}
+        {activeTab === "jobs" && (
+          <div className="space-y-12">
+            <BrutalBox title="POST_NEW_BOUNTY" className="bg-white">
+              <div className="grid gap-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput
+                    label="Job Title"
+                    placeholder="E.G. FOUNDING ENGINEER"
+                    value={jobForm.title}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, title: e.target.value })
+                    }
+                    required
+                  />
+                  <BrutalInput
+                    label="Company Name"
+                    placeholder="E.G. ACME CORP"
+                    value={jobForm.company}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, company: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput
+                    label="Company Website"
+                    placeholder="HTTPS://..."
+                    value={jobForm.company_url}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, company_url: e.target.value })
+                    }
+                  />
+                  <BrutalInput
+                    label="Location"
+                    placeholder="REMOTE, NYC, SF..."
+                    value={jobForm.location}
+                    onChange={(e) =>
+                      setJobForm({ ...jobForm, location: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* Transparency Grid Input */}
+                <div className="border-4 border-black p-4 bg-gray-50">
+                  <label className="font-bold uppercase block mb-4 border-b-2 border-black pb-2">
+                    Transparency Data (Required)
+                  </label>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <BrutalInput
+                      label="Salary Min ($)"
+                      type="number"
+                      placeholder="100000"
+                      value={jobForm.salary_min}
+                      onChange={(e) =>
+                        setJobForm({
+                          ...jobForm,
+                          salary_min: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    <BrutalInput
+                      label="Salary Max ($)"
+                      type="number"
+                      placeholder="150000"
+                      value={jobForm.salary_max}
+                      onChange={(e) =>
+                        setJobForm({
+                          ...jobForm,
+                          salary_max: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    <BrutalInput
+                      label="Equity (%)"
+                      placeholder="0.5% - 1.0%"
+                      value={jobForm.equity}
+                      onChange={(e) =>
+                        setJobForm({ ...jobForm, equity: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <BrutalInput
+                  label="Tags (Comma Separated)"
+                  placeholder="REACT, NODE, RUST..."
+                  value={jobForm.tags.join(", ")}
+                  onChange={(e) =>
+                    setJobForm({
+                      ...jobForm,
+                      tags: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter((s) => s),
+                    })
+                  }
+                />
+
+                <BrutalInput
+                  label="External Apply URL (Optional)"
+                  placeholder="LEAVE EMPTY TO USE INTERNAL SYSTEM"
+                  value={jobForm.apply_url}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, apply_url: e.target.value })
+                  }
+                />
+
+                <BrutalTextArea
+                  label="Job Description"
+                  placeholder="SELL THE MISSION. KEEP IT RAW."
+                  className="min-h-[200px]"
+                  value={jobForm.description}
+                  onChange={(e) =>
+                    setJobForm({ ...jobForm, description: e.target.value })
+                  }
+                  required
+                />
+
+                <BrutalButton
+                  onClick={handleJobSubmit}
+                  loading={isSubmittingJob}
+                  className="w-full text-xl py-4"
+                >
+                  POST BOUNTY
+                </BrutalButton>
+              </div>
+            </BrutalBox>
+
+            <div className="border-t-8 border-black pt-12">
+              <h2 className="text-3xl font-black uppercase mb-8 flex items-center gap-2">
+                <Briefcase /> ACTIVE BOUNTIES
+              </h2>
+              <div className="space-y-4">
+                {jobsList.map((job) => (
+                  <div
+                    key={job.id}
+                    className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4"
+                  >
+                    <div>
+                      <h3 className="font-black text-xl">
+                        {job.title} @ {job.company}
+                      </h3>
+                      <div className="flex gap-2 my-2 text-xs font-bold font-mono">
+                        <span className="bg-green-100 px-2 py-1 border border-black">
+                          ${job.salary_min.toLocaleString()} - $
+                          {job.salary_max.toLocaleString()}
+                        </span>
+                        <span className="bg-purple-100 px-2 py-1 border border-black">
+                          {job.equity || "NO EQUITY"}
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 border border-black">
+                          {job.location}
+                        </span>
+                      </div>
+                      <p className="opacity-50 text-sm">ID: {job.id}</p>
+                    </div>
+                    <div className="shrink-0">
+                      <button
+                        onClick={() => handleDeleteJob(job.id!)}
+                        className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
+                      >
+                        <Trash2 size={16} /> DELETE
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {jobsList.length === 0 && (
+                  <p className="opacity-50 italic">No active job listings.</p>
                 )}
               </div>
             </div>

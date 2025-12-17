@@ -51,6 +51,36 @@ async function initDB() {
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        company_url TEXT,
+        location TEXT NOT NULL,
+        salary_min INTEGER,
+        salary_max INTEGER,
+        equity TEXT,
+        tags TEXT, -- JSON array
+        description TEXT NOT NULL,
+        apply_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS referrals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        job_id INTEGER,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        linkedin TEXT,
+        why_me TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     console.log('✓ Turso database ready');
   } catch (error) {
     console.error('DB Init Error:', error.message);
@@ -294,6 +324,109 @@ app.put('/api/blogs/:id', upload.single('image'), async (req, res) => {
     console.error('Blog Update Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// --- API ENDPOINT: JOBS ---
+
+// GET All Jobs
+app.get('/api/jobs', async (req, res) => {
+  try {
+    if (!dbInitialized) {
+      await initDB();
+      dbInitialized = true;
+    }
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+    const result = await db.execute('SELECT * FROM jobs ORDER BY created_at DESC');
+    // Parse tags JSON
+    const jobs = result.rows.map(job => ({
+      ...job,
+      tags: job.tags ? JSON.parse(job.tags) : []
+    }));
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET Single Job
+app.get('/api/jobs/:id', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+    const { id } = req.params;
+    const result = await db.execute({
+        sql: 'SELECT * FROM jobs WHERE id = ?',
+        args: [id]
+    });
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Job not found' });
+    
+    const job = result.rows[0];
+    job.tags = job.tags ? JSON.parse(job.tags) : [];
+    res.json(job);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST Create Job
+app.post('/api/jobs', async (req, res) => {
+  try {
+    if (!dbInitialized) await initDB();
+    if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+    const { title, company, company_url, location, salary_min, salary_max, equity, tags, description, apply_url } = req.body;
+
+    const result = await db.execute({
+      sql: `INSERT INTO jobs (title, company, company_url, location, salary_min, salary_max, equity, tags, description, apply_url) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        title, 
+        company, 
+        company_url || '', 
+        location, 
+        salary_min || 0, 
+        salary_max || 0, 
+        equity || '', 
+        JSON.stringify(tags || []), 
+        description, 
+        apply_url || ''
+      ]
+    });
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE Job
+app.delete('/api/jobs/:id', async (req, res) => {
+    try {
+      if (!db) return res.status(500).json({ error: 'Database not configured' });
+      await db.execute({
+        sql: 'DELETE FROM jobs WHERE id = ?',
+        args: [req.params.id]
+      });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
+// POST Request Referral
+app.post('/api/referral', async (req, res) => {
+    try {
+        if (!dbInitialized) await initDB();
+        if (!db) return res.status(500).json({ error: 'Database not configured' });
+
+        const { job_id, name, email, linkedin, why_me } = req.body;
+        await db.execute({
+            sql: `INSERT INTO referrals (job_id, name, email, linkedin, why_me) VALUES (?, ?, ?, ?, ?)`,
+            args: [job_id, name, email, linkedin || '', why_me || '']
+        });
+        res.json({ success: true, message: 'Referral request sent!' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // --- API ENDPOINT: Resequence Blog IDs ---

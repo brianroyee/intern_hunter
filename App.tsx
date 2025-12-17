@@ -3,6 +3,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import BlogsPage from "./BlogsPage";
 import BlogPostPage from "./BlogPostPage";
 import BlogArchivePage from "./BlogArchivePage";
+import JobDetailsPage from "./JobDetailsPage";
 import Admin from "./Admin";
 import LandingPage from "./LandingPage";
 import ApplyPage from "./ApplyPage";
@@ -34,6 +35,8 @@ export default function App() {
       <Route path="/blogs" element={<BlogsPage />} />
       <Route path="/blogs/archive" element={<BlogArchivePage />} />
       <Route path="/blogs/:id" element={<BlogPostPage />} />
+      {/* Route path="/jobs" is now /hire */}
+      <Route path="/jobs/:id" element={<JobDetailsPage />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   );
