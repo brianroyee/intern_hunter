@@ -28,6 +28,12 @@ export default function RecruiterPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [locationType, setLocationType] = useState<
+    "On-site" | "Remote" | "Hybrid" | "Any"
+  >("Any");
+  const [compensationType, setCompensationType] = useState<
+    "Paid" | "Unpaid" | "Any"
+  >("Any");
 
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
@@ -71,7 +77,22 @@ export default function RecruiterPage() {
 
     const matchesTag = selectedTag ? job.tags.includes(selectedTag) : true;
 
-    return matchesSearch && matchesTag;
+    const matchesLocationType =
+      locationType !== "Any"
+        ? job.location.toLowerCase().includes(locationType.toLowerCase()) ||
+          job.tags.includes(locationType)
+        : true;
+
+    const matchesCompensation =
+      compensationType !== "Any"
+        ? compensationType === "Paid"
+          ? job.salary_max > 0
+          : job.salary_max === 0
+        : true;
+
+    return (
+      matchesSearch && matchesTag && matchesLocationType && matchesCompensation
+    );
   });
 
   return (
@@ -94,93 +115,126 @@ export default function RecruiterPage() {
       </header>
 
       <main className="flex-grow p-4 md:p-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* RECRUITER CTA SECTION (The "Header" of the page) */}
-          <div className="border-8 border-black bg-white p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-brutal-yellow text-black font-black px-4 py-1 border-b-4 border-l-4 border-black text-xs uppercase z-10">
-              RECRUITER ZONE
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-5xl font-black uppercase leading-none mb-2">
-                HIRING?
-              </h1>
-              <p className="font-bold opacity-60 uppercase max-w-md">
-                Stop filtering through noise. Post your bounty to the elite
-                network.
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* COMPACT RECRUITER BANNER */}
+          <div className="bg-brutal-yellow border-4 border-black p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-brutal-sm">
+            <div className="flex items-center gap-4">
+              <div className="bg-black text-white p-2 font-black uppercase text-xs tracking-widest hidden md:block">
+                Recruiter Mode
+              </div>
+              <p className="font-bold uppercase text-sm md:text-base">
+                <span className="font-black">Hiring?</span> Stop filtering
+                noise. Post to the elite network.
               </p>
             </div>
-            <a href="mailto:contactbrianroy@gmail.com" className="shrink-0">
-              <BrutalButton className="bg-brutal-red text-white py-4 px-8 text-lg hover:shadow-hard-active">
-                <Send className="inline mr-2" /> POST A BOUNTY
-              </BrutalButton>
+            <a
+              href="mailto:contactbrianroy@gmail.com"
+              className="whitespace-nowrap"
+            >
+              <button className="bg-black text-white px-6 py-2 font-bold uppercase hover:bg-white hover:text-black border-2 border-black transition-colors flex items-center gap-2 text-sm">
+                <Send size={14} /> Post Bounty
+              </button>
             </a>
           </div>
 
-          {/* CANDIDATE SEARCH SECTION */}
-          <div className="border-8 border-black bg-brutal-blue text-white p-6 md:p-12 shadow-brutal relative">
-            <div className="absolute -top-6 -left-6 bg-black text-white px-4 py-2 border-4 border-white transform -rotate-2 font-black">
-              FOR CANDIDATES
-            </div>
-
-            <h2 className="text-4xl md:text-6xl font-black uppercase mb-8 leading-none">
-              DEPLOY YOURSELF.
-            </h2>
-
-            <div className="bg-white p-4 border-4 border-black text-black">
+          {/* LINKEDIN-STYLE FILTER BAR */}
+          <div className="bg-white border-4 border-black p-4 md:p-6 shadow-brutal">
+            <div className="flex flex-col gap-4">
+              {/* Top Row: Search & Location Filter */}
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-grow relative">
-                  <Search className="absolute top-4 left-4 opacity-50" />
+                <div className="flex-grow-[2] relative group">
+                  <Search
+                    className="absolute top-3 left-3 opacity-40 group-focus-within:opacity-100 transition-opacity"
+                    size={20}
+                  />
                   <input
                     type="text"
-                    placeholder="SEARCH ROLE, COMPANY, STACK..."
-                    className="w-full bg-transparent p-3 pl-12 font-bold uppercase text-lg outline-none placeholder:text-gray-400"
+                    placeholder="Search by Title, Skill, or Company"
+                    className="w-full bg-gray-50 border-2 border-gray-300 p-2 pl-10 font-bold uppercase focus:border-black focus:bg-white outline-none transition-colors"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="hidden md:block w-1 bg-gray-200"></div>
-                <div className="flex-shrink-0 flex items-center">
-                  <span className="font-bold opacity-50 mr-2 text-sm">
-                    FILTERS:
-                  </span>
-                  <div className="flex gap-2">
-                    {["REMOTE", "Intern", "New Grad"].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSearchTerm(f)}
-                        className="border-2 border-black px-2 py-1 text-xs font-bold uppercase hover:bg-black hover:text-white transition-colors"
-                      >
-                        {f}
-                      </button>
-                    ))}
+
+                {/* Location Type Dropdown */}
+                <div className="flex-shrink-0 relative">
+                  <select
+                    value={locationType}
+                    onChange={(e) => setLocationType(e.target.value as any)}
+                    className="h-full bg-white border-2 border-gray-300 p-2 font-bold uppercase text-sm focus:border-black outline-none cursor-pointer hover:bg-gray-50 appearance-none pr-8"
+                  >
+                    <option value="Any">Location: Any</option>
+                    <option value="On-site">On-site</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none opacity-50">
+                    ▼
+                  </div>
+                </div>
+
+                {/* Compensation Dropdown */}
+                <div className="flex-shrink-0 relative">
+                  <select
+                    value={compensationType}
+                    onChange={(e) => setCompensationType(e.target.value as any)}
+                    className="h-full bg-white border-2 border-gray-300 p-2 font-bold uppercase text-sm focus:border-black outline-none cursor-pointer hover:bg-gray-50 appearance-none pr-8"
+                  >
+                    <option value="Any">Pay: Any</option>
+                    <option value="Paid">Paid Only 💰</option>
+                    <option value="Unpaid">Unpaid / Equity</option>
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none opacity-50">
+                    ▼
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* TAG CLOUD */}
-            {allTags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {allTags.map((tag) => (
+              {/* Bottom Row: Pill Filters */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="font-bold text-xs uppercase opacity-50 mr-2">
+                  Quick Filters:
+                </span>
+
+                {[
+                  "Remote",
+                  "Intern",
+                  "New Grad",
+                  "Engineering",
+                  "Design",
+                  "Product",
+                ].map((tag) => (
                   <button
                     key={tag}
                     onClick={() =>
                       setSelectedTag(selectedTag === tag ? null : tag)
                     }
                     className={`
-                                    px-3 py-1 text-sm font-bold uppercase border-2 border-white transition-all
-                                    ${
-                                      selectedTag === tag
-                                        ? "bg-white text-black translate-x-[2px] translate-y-[2px]"
-                                        : "bg-transparent text-white hover:bg-white hover:text-black hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-hard-sm"
-                                    }
-                                `}
+                                px-3 py-1 rounded-full border-2 text-xs font-bold uppercase transition-all
+                                ${
+                                  selectedTag === tag
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-gray-600 border-gray-300 hover:border-black hover:text-black"
+                                }
+                            `}
                   >
-                    {selectedTag === tag ? "× " : "#"} {tag}
+                    {tag}
                   </button>
                 ))}
+
+                {selectedTag && (
+                  <button
+                    onClick={() => {
+                      setSelectedTag(null);
+                      setSearchTerm("");
+                    }}
+                    className="ml-auto text-xs font-bold text-red-600 hover:underline uppercase"
+                  >
+                    Clear All
+                  </button>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* JOB LIST */}
