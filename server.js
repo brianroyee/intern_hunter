@@ -70,6 +70,7 @@ async function initDB() {
         equity TEXT,
         tags TEXT, -- JSON array
         description TEXT NOT NULL,
+        company_description TEXT, -- New: Company Description
         apply_url TEXT,
         status TEXT DEFAULT 'pending', -- pending, active, rejected
         admin_rating REAL, -- New: Admin Rating
@@ -94,7 +95,8 @@ async function initDB() {
         "ALTER TABLE jobs ADD COLUMN admin_comments TEXT",
         "ALTER TABLE jobs ADD COLUMN linkedin_url TEXT",
         "ALTER TABLE jobs ADD COLUMN twitter_url TEXT",
-        "ALTER TABLE jobs ADD COLUMN instagram_url TEXT"
+        "ALTER TABLE jobs ADD COLUMN instagram_url TEXT",
+        "ALTER TABLE jobs ADD COLUMN company_description TEXT"
     ];
 
     for (const sql of migrations) {
@@ -427,6 +429,7 @@ app.post('/api/jobs', async (req, res) => {
         equity, 
         tags,
         description, 
+        company_description,
         apply_url,
         linkedin_url,
         twitter_url,
@@ -441,9 +444,9 @@ app.post('/api/jobs', async (req, res) => {
       sql: `INSERT INTO jobs (
         title, company, company_url, location, 
         location_type, internship_type, duration, academic_year, discipline, compensation_type,
-        salary_min, salary_max, equity, tags, description, apply_url, 
+        salary_min, salary_max, equity, tags, description, company_description, apply_url, 
         linkedin_url, twitter_url, instagram_url, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       args: [
         title, 
         company, 
@@ -460,6 +463,7 @@ app.post('/api/jobs', async (req, res) => {
         equity || '', 
         JSON.stringify(tags || []), 
         description, 
+        company_description || '',
         apply_url || '',
         linkedin_url || '',
         twitter_url || '',
@@ -495,6 +499,7 @@ app.put('/api/jobs/:id', async (req, res) => {
             equity, 
             tags, 
             description, 
+            company_description,
             apply_url,
             linkedin_url,
             twitter_url,
@@ -510,13 +515,13 @@ app.put('/api/jobs/:id', async (req, res) => {
             sql: `UPDATE jobs SET 
                 title=?, company=?, company_url=?, location=?, location_type=?, 
                 internship_type=?, duration=?, academic_year=?, discipline=?, compensation_type=?,
-                salary_min=?, salary_max=?, equity=?, tags=?, description=?, apply_url=?,
+                salary_min=?, salary_max=?, equity=?, tags=?, description=?, company_description=?, apply_url=?,
                 linkedin_url=?, twitter_url=?, instagram_url=?
                 WHERE id = ?`,
             args: [
                 title, company, company_url, location, locationType, 
                 internshipType, duration, academicYear, discipline, compensationType,
-                salary_min, salary_max, equity, JSON.stringify(tags || []), description, apply_url,
+                salary_min, salary_max, equity, JSON.stringify(tags || []), description, company_description, apply_url,
                 linkedin_url, twitter_url, instagram_url,
                 id
             ]

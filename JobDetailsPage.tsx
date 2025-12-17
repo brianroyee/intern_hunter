@@ -37,6 +37,7 @@ interface Job {
   instagram_url?: string;
   created_at?: string;
   location_type?: string;
+  company_description?: string;
 }
 
 export default function JobDetailsPage() {
@@ -278,6 +279,14 @@ export default function JobDetailsPage() {
                 {job.description}
               </div>
             </BrutalBox>
+
+            {job.company_description && (
+              <BrutalBox title={`ABOUT ${job.company}`} className="bg-white">
+                <div className="prose font-mono whitespace-pre-wrap">
+                  {job.company_description}
+                </div>
+              </BrutalBox>
+            )}
 
             <div className="border-4 border-black bg-gray-100 p-6">
               <h3 className="font-bold uppercase mb-4 flex items-center gap-2 border-b-2 border-black pb-2">

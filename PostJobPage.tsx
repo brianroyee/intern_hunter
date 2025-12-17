@@ -122,6 +122,7 @@ export default function PostJobPage() {
     selectedTags: [] as string[],
     customTags: "",
     description: "",
+    company_description: "",
     apply_url: "",
   });
 
@@ -138,14 +139,38 @@ export default function PostJobPage() {
       !jobForm.title ||
       !jobForm.company ||
       !jobForm.description ||
+      !jobForm.company_description ||
+      !jobForm.apply_url ||
       !jobForm.linkedin_url
     ) {
       setError(
-        "Please key in required fields to preview: Title, Company, Description, LinkedIn URL."
+        "Missing required fields: Title, Company, Job Description, Company Description, Apply URL, LinkedIn URL."
       );
       window.scrollTo(0, 0);
       return;
     }
+
+    // Word Count Validation (Approx 200 words)
+    const countWords = (str: string) => str.trim().split(/\s+/).length;
+    if (countWords(jobForm.description) > 250) {
+      setError(
+        `Job Description is too long (${countWords(
+          jobForm.description
+        )} words). Max ~200 words.`
+      );
+      window.scrollTo(0, 0);
+      return;
+    }
+    if (countWords(jobForm.company_description) > 250) {
+      setError(
+        `Company Description is too long (${countWords(
+          jobForm.company_description
+        )} words). Max ~200 words.`
+      );
+      window.scrollTo(0, 0);
+      return;
+    }
+
     setIsPreview(true);
     window.scrollTo(0, 0);
   };
@@ -262,6 +287,12 @@ export default function PostJobPage() {
               </div>
             </BrutalBox>
 
+            <BrutalBox title={`ABOUT ${jobForm.company}`} className="bg-white">
+              <div className="prose font-mono whitespace-pre-wrap">
+                {jobForm.company_description}
+              </div>
+            </BrutalBox>
+
             <div className="border-4 border-black bg-gray-100 p-6">
               <h3 className="font-bold uppercase mb-4 flex items-center gap-2 border-b-2 border-black pb-2">
                 <CheckCircle size={18} /> THE STACK / TAGS
@@ -315,10 +346,12 @@ export default function PostJobPage() {
         !jobForm.title ||
         !jobForm.company ||
         !jobForm.description ||
+        !jobForm.company_description ||
+        !jobForm.apply_url ||
         !jobForm.linkedin_url
       ) {
         throw new Error(
-          "Missing required fields: Title, Company, Description, LinkedIn URL"
+          "Missing required fields: Title, Company, Job Description, Company Description, Apply URL, LinkedIn URL"
         );
       }
 
@@ -712,7 +745,7 @@ export default function PostJobPage() {
               />
 
               <BrutalInput
-                label="Application URL / Email"
+                label="Application URL / Email *"
                 placeholder="https://... or mailto:..."
                 value={jobForm.apply_url}
                 onChange={(e) =>
@@ -721,7 +754,20 @@ export default function PostJobPage() {
               />
 
               <BrutalTextArea
-                label="Internship Description *"
+                label="Company Description (Max 200 Words) *"
+                placeholder="Tell us about the company culture, mission, and why intern candidates should care."
+                className="min-h-[150px]"
+                value={jobForm.company_description}
+                onChange={(e) =>
+                  setJobForm({
+                    ...jobForm,
+                    company_description: e.target.value,
+                  })
+                }
+              />
+
+              <BrutalTextArea
+                label="Internship Description (Max 200 Words) *"
                 placeholder="Describe what the intern will learn and do. What skills will they develop? What projects will they work on?"
                 className="min-h-[200px]"
                 value={jobForm.description}

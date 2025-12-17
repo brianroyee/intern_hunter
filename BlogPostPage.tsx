@@ -10,6 +10,8 @@ import {
   Link as LinkIcon,
   Check,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface BlogPost {
   id: number;
@@ -177,7 +179,9 @@ export default function BlogPostPage() {
 
           <div className="prose prose-lg max-w-none font-sans prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
             <div className="whitespace-pre-wrap leading-relaxed text-lg">
-              {post.content}
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {post.content}
+              </ReactMarkdown>
             </div>
           </div>
         </BrutalBox>

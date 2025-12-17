@@ -24,6 +24,8 @@ import {
   Edit,
   X,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface BlogPost {
   id?: number;
@@ -46,6 +48,7 @@ interface JobPost {
   equity: string;
   tags: string[];
   description: string;
+  company_description?: string;
   apply_url: string;
   created_at?: string;
   location_type?: string;
@@ -164,6 +167,7 @@ export default function Admin() {
   });
   const [isSubmittingBlog, setIsSubmittingBlog] = useState(false);
   const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
+  const [isPreviewBlog, setIsPreviewBlog] = useState(false);
 
   // Job State
   const [jobsList, setJobsList] = useState<JobPost[]>([]);
@@ -181,6 +185,7 @@ export default function Admin() {
     equity: "",
     tags: [],
     description: "",
+    company_description: "",
     apply_url: "",
   });
   const [isSubmittingJob, setIsSubmittingJob] = useState(false);
@@ -199,7 +204,41 @@ export default function Admin() {
       image: null,
     });
     setEditingBlogId(null);
+    setIsPreviewBlog(false);
   };
+
+  const renderBlogPreview = () => (
+    <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+      <div className="bg-red-500 text-white font-black text-center p-2 text-sm border-4 border-black">
+        ⚠️ PREVIEW MODE - NOT PUBLISHED
+      </div>
+      <BrutalBox className="bg-white">
+        <div className="border-b-4 border-black pb-6 mb-6">
+          <h1 className="text-4xl md:text-6xl font-black uppercase leading-tight mb-4 text-balance">
+            {blogForm.title || "UNTITLED LOG"}
+          </h1>
+          <p className="text-sm font-bold uppercase text-gray-600 mb-4">
+            {blogForm.author} // {new Date().toLocaleDateString()}
+          </p>
+          <div className="border-l-4 border-brutal-yellow pl-4 italic text-lg opacity-75">
+            {blogForm.excerpt || "No excerpt..."}
+          </div>
+        </div>
+        <div className="prose prose-lg max-w-none font-sans prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {blogForm.content || "*No content yet...*"}
+          </ReactMarkdown>
+        </div>
+      </BrutalBox>
+      <BrutalButton
+        onClick={handleBlogSubmit}
+        loading={isSubmittingBlog}
+        className="w-full text-xl py-4 bg-brutal-green text-black hover:bg-white"
+      >
+        {editingBlogId ? "CONFIRM UPDATE" : "CONFIRM PUBLISH"}
+      </BrutalButton>
+    </div>
+  );
 
   const getTimeAgo = (dateStr: string) => {
     const days = Math.floor(
@@ -507,6 +546,7 @@ export default function Admin() {
           equity: "",
           tags: [],
           description: "",
+          company_description: "",
           apply_url: "",
           linkedin_url: "",
           twitter_url: "",
@@ -538,6 +578,7 @@ export default function Admin() {
       linkedin_url: (job as any).linkedin_url || "",
       twitter_url: (job as any).twitter_url || "",
       instagram_url: (job as any).instagram_url || "",
+      company_description: job.company_description || "",
     });
     setEditingJobId(job.id!);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -555,6 +596,7 @@ export default function Admin() {
       equity: "",
       tags: [],
       description: "",
+      company_description: "",
       apply_url: "",
       linkedin_url: "",
       twitter_url: "",
@@ -964,78 +1006,113 @@ export default function Admin() {
               className="bg-white"
             >
               <div className="grid gap-6">
-                {editingBlogId && (
-                  <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-yellow-800">
-                        YOU ARE EDITING AN EXISTING POST
-                      </p>
-                      <p className="text-sm text-yellow-700">
-                        ID: {editingBlogId}
-                      </p>
-                    </div>
-                    <button
-                      onClick={resetBlogForm}
-                      className="text-black font-bold flex items-center gap-1 hover:underline"
-                    >
-                      <X size={16} /> CANCEL EDIT
-                    </button>
-                  </div>
-                )}
-                <BrutalInput
-                  label="Article Title"
-                  placeholder="ENTER TITLE UPPERCASE PREFERRED"
-                  value={blogForm.title}
-                  onChange={(e) =>
-                    setBlogForm({ ...blogForm, title: e.target.value })
-                  }
-                />
-                <BrutalInput
-                  label="Excerpt / TLDR"
-                  placeholder="SHORT SUMMARY FOR THE LISTING"
-                  value={blogForm.excerpt}
-                  onChange={(e) =>
-                    setBlogForm({ ...blogForm, excerpt: e.target.value })
-                  }
-                />
-                <BrutalTextArea
-                  label="Main Content"
-                  placeholder="WRITE YOUR THOUGHTS. MARKDOWN SUPPORTED."
-                  className="min-h-[300px]"
-                  value={blogForm.content}
-                  onChange={(e) =>
-                    setBlogForm({ ...blogForm, content: e.target.value })
-                  }
-                />
-
-                <div className="border-4 border-black p-4 bg-gray-50">
-                  <label className="font-bold uppercase block mb-2 flex items-center gap-2">
-                    <ImageIcon size={20} /> Cover Image
-                  </label>
-                  <p className="text-xs mb-2 opacity-50">
-                    Upload new image to replace existing one
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setBlogForm({ ...blogForm, image: e.target.files[0] });
-                      }
-                    }}
-                    className="block w-full text-sm font-mono file:mr-4 file:py-2 file:px-4 file:border-4 file:border-black file:text-sm file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <BrutalButton
-                    onClick={handleBlogSubmit}
-                    loading={isSubmittingBlog}
-                    className="w-full text-xl py-4"
+                {/* Mode Toggle */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setIsPreviewBlog(false)}
+                    className={`flex-1 py-3 font-bold uppercase border-4 border-black transition-all flex items-center justify-center gap-2 ${
+                      !isPreviewBlog
+                        ? "bg-black text-white"
+                        : "bg-white text-black hover:bg-gray-100"
+                    }`}
                   >
-                    {editingBlogId ? "UPDATE LOG ENTRY" : "PUBLISH TO NETWORK"}
-                  </BrutalButton>
+                    <Edit size={16} /> WRITE MODE
+                  </button>
+                  <button
+                    onClick={() => setIsPreviewBlog(true)}
+                    className={`flex-1 py-3 font-bold uppercase border-4 border-black transition-all flex items-center justify-center gap-2 ${
+                      isPreviewBlog
+                        ? "bg-black text-white"
+                        : "bg-white text-black hover:bg-gray-100"
+                    }`}
+                  >
+                    <Users size={16} /> PREVIEW MODE
+                  </button>
                 </div>
+
+                {isPreviewBlog ? (
+                  renderBlogPreview()
+                ) : (
+                  <>
+                    {editingBlogId && (
+                      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-yellow-800">
+                            YOU ARE EDITING AN EXISTING POST
+                          </p>
+                          <p className="text-sm text-yellow-700">
+                            ID: {editingBlogId}
+                          </p>
+                        </div>
+                        <button
+                          onClick={resetBlogForm}
+                          className="text-black font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <X size={16} /> CANCEL EDIT
+                        </button>
+                      </div>
+                    )}
+                    <BrutalInput
+                      label="Article Title"
+                      placeholder="ENTER TITLE UPPERCASE PREFERRED"
+                      value={blogForm.title}
+                      onChange={(e) =>
+                        setBlogForm({ ...blogForm, title: e.target.value })
+                      }
+                    />
+                    <BrutalInput
+                      label="Excerpt / TLDR"
+                      placeholder="SHORT SUMMARY FOR THE LISTING"
+                      value={blogForm.excerpt}
+                      onChange={(e) =>
+                        setBlogForm({ ...blogForm, excerpt: e.target.value })
+                      }
+                    />
+                    <BrutalTextArea
+                      label="Main Content (Markdown Supported)"
+                      placeholder="# HEADING\n\nWRITE YOUR THOUGHTS..."
+                      className="min-h-[300px] font-mono text-sm"
+                      value={blogForm.content}
+                      onChange={(e) =>
+                        setBlogForm({ ...blogForm, content: e.target.value })
+                      }
+                    />
+
+                    <div className="border-4 border-black p-4 bg-gray-50">
+                      <label className="font-bold uppercase block mb-2 flex items-center gap-2">
+                        <ImageIcon size={20} /> Cover Image
+                      </label>
+                      <p className="text-xs mb-2 opacity-50">
+                        Upload new image to replace existing one
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setBlogForm({
+                              ...blogForm,
+                              image: e.target.files[0],
+                            });
+                          }
+                        }}
+                        className="block w-full text-sm font-mono file:mr-4 file:py-2 file:px-4 file:border-4 file:border-black file:text-sm file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <BrutalButton
+                        onClick={handleBlogSubmit}
+                        loading={isSubmittingBlog}
+                        className="w-full text-xl py-4"
+                      >
+                        {editingBlogId
+                          ? "UPDATE LOG ENTRY"
+                          : "PUBLISH TO NETWORK"}
+                      </BrutalButton>
+                    </div>
+                  </>
+                )}
               </div>
             </BrutalBox>
 
@@ -1344,6 +1421,19 @@ export default function Admin() {
                   value={jobForm.apply_url}
                   onChange={(e) =>
                     setJobForm({ ...jobForm, apply_url: e.target.value })
+                  }
+                />
+
+                <BrutalTextArea
+                  label="Company Description"
+                  placeholder="ABOUT THE COMPANY..."
+                  className="min-h-[150px]"
+                  value={jobForm.company_description}
+                  onChange={(e) =>
+                    setJobForm({
+                      ...jobForm,
+                      company_description: e.target.value,
+                    })
                   }
                 />
 
