@@ -328,10 +328,13 @@ app.get('/jobs/:id', async (req, res) => {
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="INTERN_OS">
     <meta property="og:url" content="${pageUrl}">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:secure_url" content="${imageUrl.replace('http://', 'https://')}">
+    <meta property="og:image:type" content="image/svg+xml">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
@@ -343,7 +346,8 @@ app.get('/jobs/:id', async (req, res) => {
     <meta property="twitter:image" content="${imageUrl}">
     `;
 
-    html = html.replace('</head>', `${metaTags}</head>`);
+    // Insert meta tags at the start of <head> for better scraper visibility
+    html = html.replace('<head>', `<head>${metaTags}`);
     res.send(html);
 
   } catch (error) {
@@ -367,42 +371,43 @@ app.get('/api/jobs/:id/og-image', async (req, res) => {
     if (result.rows.length === 0) return res.status(404).send('Not Found');
     const job = result.rows[0];
 
-    // Create a Brutalist SVG Social Card
+    // Create a refined Brutalist SVG Social Card (GitHub style)
     const svg = `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-      <rect width="1200" height="630" fill="#f0f0f0" />
-      <rect x="20" y="20" width="1160" height="590" fill="none" stroke="black" stroke-width="12" />
+      <!-- Outer Border and Background -->
+      <rect width="1200" height="630" fill="#ffffff" />
+      <rect x="0" y="0" width="1200" height="630" fill="none" stroke="black" stroke-width="40" />
       
-      <!-- Top Section: Company -->
-      <rect x="60" y="60" width="400" height="60" fill="black" />
-      <text x="80" y="105" font-family="monospace" font-size="32" font-weight="bold" fill="#fff500" text-transform="uppercase">
+      <!-- Logo area -->
+      <rect x="60" y="60" width="80" height="80" fill="black" />
+      <text x="75" y="115" font-family="monospace" font-size="50" font-weight="black" fill="#fff500">I</text>
+      <text x="160" y="115" font-family="monospace" font-size="40" font-weight="black" fill="black">INTERN_OS // BOUNTY</text>
+
+      <!-- Content Area -->
+      <text x="60" y="240" font-family="monospace" font-size="32" font-weight="bold" fill="#666666" text-transform="uppercase">
         AT ${job.company.toUpperCase()}
       </text>
-
-      <!-- Main Title -->
-      <text x="60" y="240" font-family="monospace" font-size="80" font-weight="900" fill="black" style="text-transform: uppercase;">
+      
+      <!-- Role Title (Large & Bold) -->
+      <text x="60" y="320" font-family="monospace" font-size="85" font-weight="900" fill="black">
         ${job.title.toUpperCase()}
       </text>
 
-      <!-- Divider -->
-      <line x1="60" y1="280" x2="1140" y2="280" stroke="black" stroke-width="8" />
+      <!-- Details Bar -->
+      <rect x="60" y="380" width="1080" height="160" fill="#fff500" stroke="black" stroke-width="8" />
+      
+      <!-- Salary -->
+      <text x="100" y="440" font-family="monospace" font-size="24" font-weight="bold" fill="black" opacity="0.6">COMPENSATION</text>
+      <text x="100" y="500" font-family="monospace" font-size="56" font-weight="900" fill="black">₹${(job.salary_min/1000).toFixed(0)}K - ₹${(job.salary_max/1000).toFixed(0)}K</text>
 
-      <!-- Stats Grid -->
-      <rect x="60" y="320" width="1080" height="200" fill="white" stroke="black" stroke-width="6" />
-      
-      <!-- Stats Labels -->
-      <text x="90" y="360" font-family="monospace" font-size="20" font-weight="bold" fill="gray" text-transform="uppercase">COMPENSATION (CASH)</text>
-      <text x="90" y="420" font-family="monospace" font-size="48" font-weight="black" fill="#15803d">₹${(job.salary_min/1000).toFixed(0)}K - ₹${(job.salary_max/1000).toFixed(0)}K</text>
-      
-      <text x="600" y="360" font-family="monospace" font-size="20" font-weight="bold" fill="gray" text-transform="uppercase">LOCATION / TYPE</text>
-      <text x="600" y="420" font-family="monospace" font-size="40" font-weight="black" fill="black">${job.location.toUpperCase()}</text>
-      <text x="600" y="470" font-family="monospace" font-size="24" font-weight="bold" fill="gray">${job.internship_type?.toUpperCase() || 'INTERNSHIP'}</text>
+      <!-- Location/Mode -->
+      <text x="650" y="440" font-family="monospace" font-size="24" font-weight="bold" fill="black" opacity="0.6">LOCATION / TYPE</text>
+      <text x="650" y="500" font-family="monospace" font-size="48" font-weight="900" fill="black">${job.location.toUpperCase()} [${job.location_type?.toUpperCase() || 'REMOTE'}]</text>
 
-      <!-- Footer -->
-      <rect x="60" y="550" width="300" height="40" fill="#2a2aff" />
-      <text x="80" y="580" font-family="monospace" font-size="20" font-weight="bold" fill="white">VERIFIED BY ADMIN</text>
-      
-      <text x="1140" y="580" font-family="monospace" font-size="40" font-weight="black" fill="black" text-anchor="end">INTERN_OS</text>
+      <!-- Footer Info -->
+      <text x="60" y="585" font-family="monospace" font-size="20" font-weight="bold" fill="#666666">
+        VERIFIED BOUNTY // ${new Date().toLocaleDateString().toUpperCase()} // NO MIDDLEMEN
+      </text>
     </svg>
     `;
 
@@ -460,10 +465,13 @@ app.get('/blogs/:id', async (req, res) => {
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="article">
+    <meta property="og:site_name" content="INTERN_OS">
     <meta property="og:url" content="${pageUrl}">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:secure_url" content="${imageUrl.replace('http://', 'https://')}">
+    <meta property="og:image:type" content="image/svg+xml">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
@@ -473,8 +481,8 @@ app.get('/blogs/:id', async (req, res) => {
     <meta property="twitter:image" content="${imageUrl}">
     `;
 
-    // Insert meta tags before </head>
-    html = html.replace('</head>', `${metaTags}</head>`);
+    // Insert meta tags at the start of <head> for better scraper visibility
+    html = html.replace('<head>', `<head>${metaTags}`);
 
     // 4. Send response
     res.send(html);
