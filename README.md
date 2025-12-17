@@ -26,35 +26,6 @@ INTERN_HUNTER is a **no-nonsense, brutalist** internship application system buil
 - 🔒 **Secure** - No hardcoded secrets, proper .gitignore
 
 ---
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- npm
-
-### Installation
-
-```bash
-# Clone the repo
-git clone https://github.com/brianroyee/intern_hunter.git
-cd intern_hunter
-
-# Install dependencies
-npm install
-
-# Start the backend
-npm start
-
-# Start the frontend (in another terminal)
-npx vite
-```
-
-Then open [http://localhost:5173](http://localhost:5173) 🎉
-
----
-
 ## 🛠️ Tech Stack
 
 | Layer    | Technology                         |
@@ -79,28 +50,6 @@ intern_hunter/
 └── applications.db   # SQLite database
 ```
 
----
-
-## 🌐 Deployment
-
-### Vercel + Turso (Recommended)
-
-1. Create a [Turso](https://turso.tech) database
-2. Add env vars to Vercel:
-   - `TURSO_DATABASE_URL`
-   - `TURSO_AUTH_TOKEN`
-3. Deploy: `vercel`
-
----
-
-## 📸 Screenshots
-
-<div align="center">
-  <img src="./assets/hero.png" alt="Application Form" width="600"/>
-</div>
-
----
-
 ## 👨‍💻 Author
 
 **Brian Roy Mathew**
@@ -111,6 +60,6 @@ intern_hunter/
 ---
 
 <div align="center">
-  <p>Built with 💀 and too much coffee</p>
+  <p>Built with 💀 and too much vibecode</p>
   <p><sub>© 2024 INTERN_OS. ALL RIGHTS RESERVED.</sub></p>
 </div>
