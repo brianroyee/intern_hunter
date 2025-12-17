@@ -4,7 +4,7 @@ import { BrutalBox, BrutalButton } from "./components/BrutalComponents";
 import {
   Search,
   MapPin,
-  DollarSign,
+  IndianRupee,
   Briefcase,
   ArrowRight,
   Send,
@@ -292,9 +292,9 @@ export default function RecruiterPage() {
                         {/* Middle: Transparency Stats */}
                         <div className="flex flex-wrap gap-3 md:gap-6 font-bold font-mono text-sm md:text-base">
                           <div className="flex items-center gap-2 bg-green-100 px-3 py-1 border-2 border-green-900 text-green-900">
-                            <DollarSign size={16} />
+                            <IndianRupee size={16} />
                             <span>
-                              ${(job.salary_min / 1000).toFixed(0)}k - $
+                              ₹{(job.salary_min / 1000).toFixed(0)}k - ₹
                               {(job.salary_max / 1000).toFixed(0)}k
                             </span>
                           </div>

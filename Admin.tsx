@@ -1089,7 +1089,7 @@ export default function Admin() {
                   </label>
                   <div className="grid md:grid-cols-3 gap-4">
                     <BrutalInput
-                      label="Salary Min ($)"
+                      label="Salary Min (₹)"
                       type="number"
                       placeholder="100000"
                       value={jobForm.salary_min}
@@ -1101,7 +1101,7 @@ export default function Admin() {
                       }
                     />
                     <BrutalInput
-                      label="Salary Max ($)"
+                      label="Salary Max (₹)"
                       type="number"
                       placeholder="150000"
                       value={jobForm.salary_max}
@@ -1206,7 +1206,7 @@ export default function Admin() {
                           <strong>Comp:</strong> {job.compensation_type}
                         </p>
                         <p>
-                          <strong>Stipend:</strong> ${job.salary_min} - $
+                          <strong>Stipend:</strong> ₹{job.salary_min} - ₹
                           {job.salary_max}
                         </p>
                       </div>
@@ -1322,7 +1322,7 @@ export default function Admin() {
                       </h3>
                       <div className="flex gap-2 my-2 text-xs font-bold font-mono">
                         <span className="bg-green-100 px-2 py-1 border border-black">
-                          ${job.salary_min.toLocaleString()} - $
+                          ₹{job.salary_min.toLocaleString()} - ₹
                           {job.salary_max.toLocaleString()}
                         </span>
                         <span className="bg-purple-100 px-2 py-1 border border-black">

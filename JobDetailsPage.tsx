@@ -8,7 +8,6 @@ import {
 } from "./components/BrutalComponents";
 import {
   MapPin,
-  DollarSign,
   Briefcase,
   ArrowLeft,
   Globe,
@@ -239,7 +238,7 @@ export default function JobDetailsPage() {
               Total Comp (Cash)
             </p>
             <p className="text-lg md:text-2xl font-black text-green-700">
-              ${(job.salary_min / 1000).toFixed(0)}k -{" "}
+              ₹{(job.salary_min / 1000).toFixed(0)}k - ₹
               {(job.salary_max / 1000).toFixed(0)}k
             </p>
           </div>
@@ -302,7 +301,7 @@ export default function JobDetailsPage() {
             <div className="sticky top-24 space-y-4">
               <button
                 onClick={handleApply}
-                className="w-full bg-black text-white border-4 border-black py-4 font-black text-xl uppercase hover:bg-brutal-green hover:border-black hover:text-black hover:shadow-hard transition-all active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
+                className="w-full bg-black text-white border-4 border-black py-4 font-black text-xl uppercase hover:bg-white hover:text-black hover:shadow-hard transition-all active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
               >
                 APPLY NOW
               </button>

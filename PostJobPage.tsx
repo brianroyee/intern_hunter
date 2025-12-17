@@ -9,7 +9,6 @@ import {
 import {
   ArrowLeft,
   Briefcase,
-  DollarSign,
   MapPin,
   Globe,
   Tag,
