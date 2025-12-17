@@ -182,7 +182,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Application submitted successfully!',
-        applicationId: result.lastInsertRowid
+        applicationId: result.lastInsertRowid.toString()
       });
     }
 
@@ -238,7 +238,7 @@ module.exports = async (req, res) => {
           sql: `INSERT INTO blog_posts (title, excerpt, content, author, imageBase64) VALUES (?, ?, ?, ?, ?)`,
           args: [title, excerpt, content, author || 'ADMIN', imageBase64]
         });
-        return res.status(200).json({ success: true, id: result.lastInsertRowid });
+        return res.status(200).json({ success: true, id: result.lastInsertRowid.toString() });
       } catch (e) {
         console.error("Blog Insert Error:", e);
         return res.status(500).json({ success: false, error: e.message });
