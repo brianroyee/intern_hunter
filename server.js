@@ -3,6 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const { Resvg } = require('@resvg/resvg-js');
 const { createClient } = require('@libsql/client');
 
 const app = express();
@@ -334,7 +335,7 @@ app.get('/jobs/:id', async (req, res) => {
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:secure_url" content="${imageUrl.replace('http://', 'https://')}">
-    <meta property="og:image:type" content="image/svg+xml">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
@@ -411,10 +412,21 @@ app.get('/api/jobs/:id/og-image', async (req, res) => {
     </svg>
     `;
 
-    res.setHeader('Content-Type', 'image/svg+xml');
+    const resvg = new Resvg(svg, {
+      background: '#ffffff',
+      fitTo: {
+        mode: 'width',
+        value: 1200,
+      },
+    });
+    const pngData = resvg.render();
+    const pngBuffer = pngData.asPng();
+
+    res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(svg);
+    res.send(pngBuffer);
   } catch (error) {
+    console.error('OG Image Generation Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -471,7 +483,7 @@ app.get('/blogs/:id', async (req, res) => {
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:secure_url" content="${imageUrl.replace('http://', 'https://')}">
-    <meta property="og:image:type" content="image/svg+xml">
+    <meta property="og:image:type" content="image/png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
