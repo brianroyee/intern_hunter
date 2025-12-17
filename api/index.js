@@ -1,11 +1,4 @@
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
 const { createClient } = require('@libsql/client');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 // --- TURSO DATABASE CONNECTION ---
 let db;
@@ -46,178 +39,237 @@ async function initDB() {
 
 let dbInitialized = false;
 
-// --- FILE UPLOAD CONFIG ---
-const upload = multer({ storage: multer.memoryStorage() });
+// Parse multipart form data manually
+function parseMultipart(body, contentType) {
+  const boundary = contentType.split('boundary=')[1];
+  if (!boundary) return { fields: {}, file: null };
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    dbConnected: !!db,
-    envVars: {
-      TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'set' : 'missing',
-      TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'set' : 'missing'
+  const parts = body.split(`--${boundary}`);
+  const fields = {};
+  let file = null;
+
+  for (const part of parts) {
+    if (part.includes('Content-Disposition')) {
+      const nameMatch = part.match(/name="([^"]+)"/);
+      const filenameMatch = part.match(/filename="([^"]+)"/);
+      
+      if (nameMatch) {
+        const name = nameMatch[1];
+        // Find the content (after double newline)
+        const contentStart = part.indexOf('\r\n\r\n');
+        if (contentStart !== -1) {
+          let content = part.substring(contentStart + 4);
+          // Remove trailing \r\n
+          content = content.replace(/\r\n$/, '');
+          
+          if (filenameMatch) {
+            // It's a file
+            file = {
+              name: name,
+              filename: filenameMatch[1],
+              buffer: Buffer.from(content, 'binary')
+            };
+          } else {
+            fields[name] = content.trim();
+          }
+        }
+      }
     }
-  });
-});
+  }
 
-// Submit Application
-app.post('/api/apply', upload.single('cv'), async (req, res) => {
+  return { fields, file };
+}
+
+module.exports = async (req, res) => {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const url = req.url;
+
   try {
-    if (!dbInitialized) {
-      await initDB();
-      dbInitialized = true;
+    // Health check
+    if (url === '/api/health' && req.method === 'GET') {
+      return res.status(200).json({
+        status: 'ok',
+        dbConnected: !!db,
+        envVars: {
+          TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'set' : 'missing',
+          TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'set' : 'missing'
+        }
+      });
     }
 
-    if (!db) {
-      return res.status(500).json({ success: false, error: 'Database not configured' });
+    // Submit Application
+    if (url === '/api/apply' && req.method === 'POST') {
+      if (!dbInitialized) {
+        await initDB();
+        dbInitialized = true;
+      }
+
+      if (!db) {
+        return res.status(500).json({ success: false, error: 'Database not configured' });
+      }
+
+      // Parse the request body
+      let body = '';
+      const contentType = req.headers['content-type'] || '';
+      
+      // For multipart form data
+      let fields = {};
+      let file = null;
+
+      if (contentType.includes('multipart/form-data')) {
+        // Read raw body as buffer
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+        const rawBody = Buffer.concat(chunks).toString('binary');
+        const parsed = parseMultipart(rawBody, contentType);
+        fields = parsed.fields;
+        file = parsed.file;
+      } else {
+        // JSON body
+        fields = req.body || {};
+      }
+
+      const { fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, subscribeToNewsletter } = fields;
+
+      let cvBase64 = null;
+      let cvFilename = null;
+
+      if (file && file.buffer) {
+        cvBase64 = file.buffer.toString('base64');
+        cvFilename = file.filename;
+      }
+
+      const result = await db.execute({
+        sql: `INSERT INTO applications (fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, cvBase64, cvFilename, subscribeToNewsletter)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          fullName || '',
+          email || '',
+          phone || '',
+          department || '',
+          experienceLevel || 'intern',
+          typeof skills === 'string' ? skills : JSON.stringify(skills || []),
+          bio || '',
+          portfolioUrl || '',
+          cvBase64,
+          cvFilename,
+          subscribeToNewsletter === 'true' || subscribeToNewsletter === true ? 1 : 0
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Application submitted successfully!',
+        applicationId: result.lastInsertRowid
+      });
     }
 
-    const { fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, subscribeToNewsletter } = req.body;
-    const file = req.file;
-
-    let cvBase64 = null;
-    let cvFilename = null;
-
-    if (file) {
-      cvBase64 = file.buffer.toString('base64');
-      cvFilename = file.originalname;
+    // Get All Applications
+    if (url === '/api/applications' && req.method === 'GET') {
+      if (!dbInitialized) {
+        await initDB();
+        dbInitialized = true;
+      }
+      if (!db) {
+        return res.status(500).json({ error: 'Database not configured' });
+      }
+      const result = await db.execute('SELECT id, fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, cvFilename, subscribeToNewsletter, submittedAt FROM applications ORDER BY submittedAt DESC');
+      return res.status(200).json(result.rows);
     }
 
-    const result = await db.execute({
-      sql: `INSERT INTO applications (fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, cvBase64, cvFilename, subscribeToNewsletter)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        fullName,
-        email,
-        phone || '',
-        department,
-        experienceLevel || 'intern',
-        typeof skills === 'string' ? skills : JSON.stringify(skills || []),
-        bio || '',
-        portfolioUrl || '',
-        cvBase64,
-        cvFilename,
-        subscribeToNewsletter === 'true' || subscribeToNewsletter === true ? 1 : 0
-      ]
-    });
+    // Delete All Applications
+    if (url === '/api/applications' && req.method === 'DELETE') {
+      const { password } = req.body || {};
+      const adminPassword = process.env.ADMIN_PASSWORD;
 
-    res.json({ 
-      success: true, 
-      message: 'Application submitted successfully!',
-      applicationId: result.lastInsertRowid
-    });
+      if (password !== adminPassword) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
+      if (!db) {
+        return res.status(500).json({ error: 'Database not configured' });
+      }
+
+      await db.execute('DELETE FROM applications');
+      return res.status(200).json({ success: true, message: 'All applications deleted' });
+    }
+
+    // Admin Login
+    if (url === '/api/admin/login' && req.method === 'POST') {
+      const { password } = req.body || {};
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminPassword) {
+        return res.status(500).json({ success: false, error: 'Admin password not configured' });
+      }
+
+      if (password === adminPassword) {
+        return res.status(200).json({ success: true, token: 'admin-authenticated' });
+      } else {
+        return res.status(401).json({ success: false, error: 'Invalid password' });
+      }
+    }
+
+    // Download CV - /api/cv/:id
+    if (url.startsWith('/api/cv/') && req.method === 'GET') {
+      const id = url.split('/api/cv/')[1];
+      if (!db) {
+        return res.status(500).json({ error: 'Database not configured' });
+      }
+      const result = await db.execute({
+        sql: 'SELECT cvBase64, cvFilename FROM applications WHERE id = ?',
+        args: [id]
+      });
+
+      if (result.rows.length === 0 || !result.rows[0].cvBase64) {
+        return res.status(404).json({ error: 'CV not found' });
+      }
+
+      const { cvBase64, cvFilename } = result.rows[0];
+      const buffer = Buffer.from(cvBase64, 'base64');
+
+      res.setHeader('Content-Disposition', `attachment; filename="${cvFilename}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return res.send(buffer);
+    }
+
+    // Delete Single Application - /api/applications/:id
+    if (url.match(/^\/api\/applications\/\d+$/) && req.method === 'DELETE') {
+      const id = url.split('/api/applications/')[1];
+      const { password } = req.body || {};
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (password !== adminPassword) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
+      if (!db) {
+        return res.status(500).json({ error: 'Database not configured' });
+      }
+
+      await db.execute({
+        sql: 'DELETE FROM applications WHERE id = ?',
+        args: [id]
+      });
+
+      return res.status(200).json({ success: true, message: 'Application deleted' });
+    }
+
+    // 404 for unmatched routes
+    return res.status(404).json({ error: 'Not found' });
 
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
-});
-
-// Get All Applications
-app.get('/api/applications', async (req, res) => {
-  try {
-    if (!dbInitialized) {
-      await initDB();
-      dbInitialized = true;
-    }
-    if (!db) {
-      return res.status(500).json({ error: 'Database not configured' });
-    }
-    const result = await db.execute('SELECT id, fullName, email, phone, department, experienceLevel, skills, bio, portfolioUrl, cvFilename, subscribeToNewsletter, submittedAt FROM applications ORDER BY submittedAt DESC');
-    res.json(result.rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Download CV
-app.get('/api/cv/:id', async (req, res) => {
-  try {
-    if (!db) {
-      return res.status(500).json({ error: 'Database not configured' });
-    }
-    const result = await db.execute({
-      sql: 'SELECT cvBase64, cvFilename FROM applications WHERE id = ?',
-      args: [req.params.id]
-    });
-    
-    if (result.rows.length === 0 || !result.rows[0].cvBase64) {
-      return res.status(404).json({ error: 'CV not found' });
-    }
-
-    const { cvBase64, cvFilename } = result.rows[0];
-    const buffer = Buffer.from(cvBase64, 'base64');
-    
-    res.setHeader('Content-Disposition', `attachment; filename="${cvFilename}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.send(buffer);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Admin Login
-app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  
-  if (!adminPassword) {
-    return res.status(500).json({ success: false, error: 'Admin password not configured' });
-  }
-  
-  if (password === adminPassword) {
-    res.json({ success: true, token: 'admin-authenticated' });
-  } else {
-    res.status(401).json({ success: false, error: 'Invalid password' });
-  }
-});
-
-// Delete Application (requires password)
-app.delete('/api/applications/:id', async (req, res) => {
-  try {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    
-    if (password !== adminPassword) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database not configured' });
-    }
-    
-    await db.execute({
-      sql: 'DELETE FROM applications WHERE id = ?',
-      args: [req.params.id]
-    });
-    
-    res.json({ success: true, message: 'Application deleted' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete All Applications (requires password)
-app.delete('/api/applications', async (req, res) => {
-  try {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    
-    if (password !== adminPassword) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-    
-    if (!db) {
-      return res.status(500).json({ error: 'Database not configured' });
-    }
-    
-    await db.execute('DELETE FROM applications');
-    
-    res.json({ success: true, message: 'All applications deleted' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-module.exports = app;
+};
