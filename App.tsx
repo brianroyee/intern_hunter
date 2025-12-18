@@ -32,6 +32,7 @@ export default function App() {
   const [bootProgress, setBootProgress] = useState(0);
 
   React.useEffect(() => {
+    // 1. BOOT_BAR_LOGIC
     const interval = setInterval(() => {
       setBootProgress((prev) => {
         if (prev >= 100) {
@@ -42,6 +43,37 @@ export default function App() {
         return prev + 1;
       });
     }, 50);
+
+    // 2. DATA_PREFETCH_ENGINE (Super-Fetch)
+    const superFetch = async () => {
+      const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+      try {
+        const response = await fetch(`${apiBase}/api/blogs`);
+        if (response.ok) {
+          const blogs = await response.json();
+          localStorage.setItem("intern_os_blogs", JSON.stringify(blogs));
+
+          if (blogs && blogs.length > 0) {
+            // Identify latest post and pre-fetch its full payload
+            const latest = blogs[0];
+            const postResponse = await fetch(
+              `${apiBase}/api/blogs/${latest.id}`
+            );
+            if (postResponse.ok) {
+              const fullPost = await postResponse.json();
+              localStorage.setItem(
+                `intern_os_blog_${latest.id}`,
+                JSON.stringify(fullPost)
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.error("DATA_PREFETCH_ERROR", e);
+      }
+    };
+
+    superFetch();
     return () => clearInterval(interval);
   }, []);
 
