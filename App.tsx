@@ -57,9 +57,18 @@ export default function App() {
             INITIALIZING_SYSTEM...
           </h1>
 
-          <p className="text-white text-[10px] md:text-xs font-bold uppercase opacity-60 mb-8 tracking-widest leading-loose">
-            [!] DESKTOP_PREVIEW_RECOMMENDED_FOR_FULL_EXPERIENCE <br />
-            [!] OPTIMIZING_FOR_HIGH_FIDELITY_TERMINAL
+          <div className="bg-brutal-yellow border-4 border-white p-4 mb-8 shadow-hard animate-fade-in">
+            <p className="text-black text-sm md:text-base font-black uppercase tracking-wider leading-tight">
+              ⚠️ SYSTEM_ADVISORY:
+              <br />
+              DESKTOP_PREVIEW_RECOMMENDED
+              <br />
+              FOR_FULL_EXPERIENCE
+            </p>
+          </div>
+
+          <p className="text-white text-[8px] md:text-[10px] font-bold uppercase opacity-40 mb-8 tracking-[0.3em] leading-loose">
+            SECURE_CONNECTION_ESTABLISHED // OPTIMIZING_TERMINAL_NODE
           </p>
 
           <div className="w-full border-2 border-white p-1">
