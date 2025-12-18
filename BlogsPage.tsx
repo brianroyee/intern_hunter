@@ -55,12 +55,25 @@ export default function BlogsPage() {
   }, []);
 
   useEffect(() => {
+    // Attempt to load from cache first for instant UI
+    const cachedPosts = localStorage.getItem("intern_os_blogs");
+    if (cachedPosts) {
+      try {
+        setPosts(JSON.parse(cachedPosts));
+        setLoading(false);
+      } catch (e) {
+        console.error("Cache corrupted", e);
+      }
+    }
+
     const fetchPosts = async () => {
       try {
         const response = await fetch(`${apiBase}/api/blogs`);
         if (response.ok) {
           const data = await response.json();
           setPosts(data);
+          // Store in cache
+          localStorage.setItem("intern_os_blogs", JSON.stringify(data));
         }
       } catch (error) {
         console.error("Failed to load blogs", error);
@@ -311,7 +324,10 @@ export default function BlogsPage() {
                   </p>
                 </div>
                 <Link to="/blogs/archive" className="w-full md:w-auto">
-                  <BrutalButton className="w-full bg-brutal-yellow text-black hover:bg-white text-xl px-12 py-5">
+                  <BrutalButton
+                    variant="secondary"
+                    className="w-full bg-brutal-yellow text-black hover:bg-white text-xl px-12 py-5"
+                  >
                     BROWSE_ALL_LOGS
                   </BrutalButton>
                 </Link>

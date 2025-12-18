@@ -18,12 +18,23 @@ export default function BlogArchivePage() {
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
   React.useEffect(() => {
+    const cachedPosts = localStorage.getItem("intern_os_blogs");
+    if (cachedPosts) {
+      try {
+        setPosts(JSON.parse(cachedPosts));
+        setLoading(false);
+      } catch (e) {
+        console.error("Cache corrupted", e);
+      }
+    }
+
     const fetchPosts = async () => {
       try {
         const response = await fetch(`${apiBase}/api/blogs`);
         if (response.ok) {
           const data = await response.json();
           setPosts(data);
+          localStorage.setItem("intern_os_blogs", JSON.stringify(data));
         }
       } catch (error) {
         console.error("Failed to load blogs", error);

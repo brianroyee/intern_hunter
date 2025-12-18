@@ -57,12 +57,23 @@ export default function BlogPostPage() {
   }, []);
 
   useEffect(() => {
+    const cachedPost = localStorage.getItem(`intern_os_blog_${id}`);
+    if (cachedPost) {
+      try {
+        setPost(JSON.parse(cachedPost));
+        setLoading(false);
+      } catch (e) {
+        console.error("Cache corrupted", e);
+      }
+    }
+
     const fetchPost = async () => {
       try {
         const response = await fetch(`${apiBase}/api/blogs/${id}`);
         if (response.ok) {
           const data = await response.json();
           setPost(data);
+          localStorage.setItem(`intern_os_blog_${id}`, JSON.stringify(data));
         } else {
           setError("Blog post not found.");
         }
@@ -194,7 +205,7 @@ export default function BlogPostPage() {
         <article className="animate-fade-in-up">
           <BrutalBox
             title={`SECURED_CONTENT_LOG_00${post.id}`}
-            className="bg-white overflow-hidden p-0"
+            className="bg-white p-0 relative"
           >
             {/* Hero Section */}
             <div className="border-b-8 border-black">
@@ -332,7 +343,10 @@ export default function BlogPostPage() {
             </p>
           </div>
           <Link to="/blogs/archive">
-            <BrutalButton className="bg-brutal-yellow text-black hover:bg-black hover:text-white text-lg py-4 px-12">
+            <BrutalButton
+              variant="secondary"
+              className="bg-brutal-yellow text-black hover:bg-black hover:text-white text-lg py-4 px-12"
+            >
               BROWSE_FULL_ARCHIVE
             </BrutalButton>
           </Link>

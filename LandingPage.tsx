@@ -16,17 +16,19 @@ export default function LandingPage() {
                 V.1.5 LIVE
               </div>
 
-              <h1 className="font-display text-5xl md:text-9xl uppercase leading-[0.8] tracking-tighter mb-6 break-words">
-                intern
-                <br /> _os
+              <h1 className="font-display text-[20vw] md:text-[140px] uppercase leading-[0.8] tracking-tighter mb-8 break-words">
+                INTER
+                <br />N<br />
+                HUNT
+                <br />
+                ER
               </h1>
               <p className="text-2xl md:text-3xl font-bold uppercase tracking-widest border-t-8 border-black pt-6 flex items-center gap-3">
-                <Terminal size={32} />
-                The Brutal Database
+                {`>_ THE BRUTAL DATABASE`}
               </p>
               <p className="mt-6 text-lg font-bold opacity-70 leading-relaxed uppercase">
-                Filtered talent. No fluff. Strictly business. <br />
-                Welcome to the Intern Operating System.
+                FILTERED TALENT. NO FLUFF. STRICTLY BUSINESS. <br />
+                WELCOME TO THE INTERN OPERATING SYSTEM.
               </p>
             </div>
           </div>

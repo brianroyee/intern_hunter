@@ -23,7 +23,11 @@ import {
   Image as ImageIcon,
   Edit,
   X,
+  Calendar,
+  User,
+  Clock,
 } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -207,36 +211,102 @@ export default function Admin() {
     setIsPreviewBlog(false);
   };
 
+  const getReadTime = (content: string) => {
+    if (!content) return 1;
+    const wordsPerMinute = 200;
+    const words = content.split(/\s+/).length;
+    return Math.ceil(words / wordsPerMinute);
+  };
+
   const renderBlogPreview = () => (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-      <div className="bg-red-500 text-white font-black text-center p-2 text-sm border-4 border-black">
-        ⚠️ PREVIEW MODE - NOT PUBLISHED
+    <div className="space-y-6 animate-fade-in">
+      <div className="bg-red-500 text-white font-black text-center p-2 text-[10px] tracking-widest border-4 border-black border-t-0 -mt-8 relative z-10">
+        ⚠️ PREVIEW_MODE: REALTIME_DRAFT_RELAY
       </div>
-      <BrutalBox className="bg-white">
-        <div className="border-b-4 border-black pb-6 mb-6">
-          <h1 className="text-4xl md:text-6xl font-black uppercase leading-tight mb-4 text-balance">
-            {blogForm.title || "UNTITLED LOG"}
-          </h1>
-          <p className="text-sm font-bold uppercase text-gray-600 mb-4">
-            {blogForm.author} // {new Date().toLocaleDateString()}
-          </p>
-          <div className="border-l-4 border-brutal-yellow pl-4 italic text-lg opacity-75">
-            {blogForm.excerpt || "No excerpt..."}
+
+      <BrutalBox
+        title={`PREVIEW_NODE_00${editingBlogId || "NEW"}`}
+        className="bg-white p-0 overflow-hidden"
+      >
+        {/* Full fidelity preview header */}
+        <div className="border-b-8 border-black">
+          {/* Local Image Preview */}
+          <div className="border-b-4 border-black bg-gray-100 flex items-center justify-center min-h-[200px] overflow-hidden">
+            {blogForm.image ? (
+              <img
+                src={
+                  typeof blogForm.image === "string"
+                    ? blogForm.image
+                    : URL.createObjectURL(blogForm.image)
+                }
+                className="w-full object-cover max-h-[400px]"
+                alt="Preview"
+              />
+            ) : editingBlogId ? (
+              <img
+                src={`${apiBase}/api/blogs/${editingBlogId}/image`}
+                className="w-full object-cover max-h-[400px]"
+                alt="Current"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 opacity-20">
+                <ImageIcon size={48} />
+                <span className="text-xs font-black uppercase">
+                  NO_IMAGE_UPLOADED
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="bg-brutal-yellow px-2 py-1 border-2 border-black text-[10px] font-black uppercase shadow-solid-sm">
+                <Calendar size={12} className="inline mr-1" />{" "}
+                {new Date().toLocaleDateString()}
+              </span>
+              <span className="bg-brutal-blue px-2 py-1 border-2 border-black text-white text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                <User size={12} /> {blogForm.author}
+              </span>
+              <span className="bg-black text-white px-2 py-1 border-2 border-black text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                <Clock size={12} /> {getReadTime(blogForm.content)} MIN_READ
+              </span>
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-black uppercase leading-[0.85] tracking-tighter mb-4 text-balance">
+              {blogForm.title || "UNTITLED_LOG_ENTRY"}
+            </h1>
+
+            <p className="text-sm font-bold italic leading-relaxed border-l-4 border-brutal-yellow pl-4 opacity-80">
+              {blogForm.excerpt || "Awaiting TLDR payload..."}
+            </p>
           </div>
         </div>
-        <div className="prose prose-lg max-w-none font-mono prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
+
+        <div className="p-6 prose prose-sm max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-2xl prose-p:leading-relaxed prose-img:border-4 prose-img:border-black prose-strong:bg-brutal-yellow prose-strong:px-1">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {blogForm.content || "*No content yet...*"}
+            {blogForm.content || "_Awaiting decrypted data stream..._"}
           </ReactMarkdown>
         </div>
       </BrutalBox>
-      <BrutalButton
-        onClick={handleBlogSubmit}
-        loading={isSubmittingBlog}
-        className="w-full text-xl py-4 bg-brutal-green text-black hover:bg-white"
-      >
-        {editingBlogId ? "CONFIRM UPDATE" : "CONFIRM PUBLISH"}
-      </BrutalButton>
+
+      <div className="bg-white border-4 border-black p-4 flex justify-between items-center">
+        <div className="flex gap-4 text-[10px] font-black uppercase opacity-50">
+          <span>
+            Words: {blogForm.content ? blogForm.content.split(/\s+/).length : 0}
+          </span>
+          <span>Chars: {blogForm.content?.length || 0}</span>
+        </div>
+        <BrutalButton
+          onClick={handleBlogSubmit}
+          loading={isSubmittingBlog}
+          className="bg-brutal-green text-black hover:bg-black hover:text-white px-8 py-2 text-sm"
+        >
+          {editingBlogId ? "EXECUTE_UPDATE" : "INITIATE_PUBLISH"}
+        </BrutalButton>
+      </div>
     </div>
   );
 
@@ -691,61 +761,61 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-brutal-cream p-4 md:p-8 font-mono">
       {/* Header */}
-      <header className="max-w-6xl mx-auto mb-8">
-        <div className="border-8 border-black bg-black text-brutal-cream p-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">
-                ADMIN_PANEL
+      <header className="max-w-7xl mx-auto mb-12">
+        <div className="border-8 border-black bg-white shadow-hard overflow-hidden">
+          {/* Top Industrial Bar */}
+          <div className="bg-black text-white px-6 py-2 flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                SYSTEM_LIVE
+              </span>
+              <span>NODE: ADMIN_HQ_V1.1</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span>DB_AUTH: VERIFIED</span>
+              <span>SECURE: AES-256</span>
+            </div>
+          </div>
+
+          <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 border-t-4 border-black">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">
+                ADMIN<span className="text-brutal-blue">_</span>CENTER
               </h1>
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={() => setActiveTab("applications")}
-                  className={`px-4 py-2 font-bold uppercase border-2 border-white transition-colors ${
-                    activeTab === "applications"
-                      ? "bg-white text-black"
-                      : "bg-black text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <Terminal className="inline mr-2" size={16} />
-                  Applications
-                </button>
-                <button
-                  onClick={() => setActiveTab("blogs")}
-                  className={`px-4 py-2 font-bold uppercase border-2 border-white transition-colors ${
-                    activeTab === "blogs"
-                      ? "bg-white text-black"
-                      : "bg-black text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <PenTool className="inline mr-2" size={16} />
-                  Blog Editor
-                </button>
-                <button
-                  onClick={() => setActiveTab("jobs")}
-                  className={`px-4 py-2 font-bold uppercase border-2 border-white transition-colors ${
-                    activeTab === "jobs"
-                      ? "bg-white text-black"
-                      : "bg-black text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <Briefcase className="inline mr-2" size={16} />
-                  Job Board
-                </button>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {[
+                  { id: "applications", label: "Applications", icon: Terminal },
+                  { id: "blogs", label: "Blog Editor", icon: PenTool },
+                  { id: "jobs", label: "Job Board", icon: Briefcase },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-4 py-2 font-black uppercase border-4 border-black transition-all flex items-center gap-2 text-xs shadow-solid-sm active:shadow-none active:translate-x-1 active:translate-y-1 ${
+                      activeTab === tab.id
+                        ? "bg-black text-white"
+                        : "bg-white text-black hover:bg-gray-100"
+                    }`}
+                  >
+                    <tab.icon size={14} />
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              <a
-                href="/"
-                className="bg-brutal-yellow text-black px-4 py-2 font-bold hover:bg-white transition-colors"
-              >
-                ← BACK
-              </a>
+
+            <div className="flex gap-4">
+              <Link to="/blogs" className="hidden md:block">
+                <button className="bg-white border-4 border-black px-4 py-2 font-black uppercase text-xs hover:bg-brutal-yellow transition-all shadow-solid-sm active:translate-x-1 active:translate-y-1 active:shadow-none">
+                  VIEW_SITE
+                </button>
+              </Link>
               <button
                 onClick={handleLogout}
-                className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-white hover:text-black transition-colors flex items-center gap-2"
+                className="bg-brutal-red text-white border-4 border-black px-4 py-2 font-black uppercase text-xs flex items-center gap-2 shadow-solid-sm active:translate-x-1 active:translate-y-1 active:shadow-none"
               >
-                <LogOut size={16} /> LOGOUT
+                <LogOut size={14} /> DISCONNECT
               </button>
             </div>
           </div>
@@ -753,40 +823,102 @@ export default function Admin() {
       </header>
 
       {/* Stats */}
-      <div className="max-w-6xl mx-auto mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto mb-12 grid grid-cols-2 md:grid-cols-4 gap-4">
         {activeTab === "applications" && (
           <>
-            <div className="border-4 border-black bg-brutal-blue text-white p-4">
+            <div className="border-4 border-black bg-brutal-blue text-white p-6 shadow-solid-sm">
               <p className="text-4xl font-black">{applications.length}</p>
-              <p className="text-xs uppercase">Total Applications</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                TOTAL_APPLICANTS
+              </p>
             </div>
-            <div className="border-4 border-black bg-brutal-yellow p-4">
-              <p className="text-4xl font-black">
+            <div className="border-4 border-black bg-brutal-yellow p-6 shadow-solid-sm">
+              <p className="text-4xl font-black text-black">
                 {applications.filter((a) => a.subscribeToNewsletter).length}
               </p>
-              <p className="text-xs uppercase">Newsletter Subs</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                NEWSLETTER_SUBS
+              </p>
             </div>
-            <div className="border-4 border-black bg-brutal-red text-white p-4">
+            <div className="border-4 border-black bg-brutal-red text-white p-6 shadow-solid-sm">
               <p className="text-4xl font-black">
                 {applications.filter((a) => a.cvFilename).length}
               </p>
-              <p className="text-xs uppercase">With CV</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                VERIFIED_CVs
+              </p>
             </div>
-            <div className="border-4 border-black bg-white p-4">
+            <div className="border-4 border-black bg-white p-6 shadow-solid-sm">
               <p className="text-4xl font-black">
                 {new Set(applications.map((a) => a.department)).size}
               </p>
-              <p className="text-xs uppercase">Departments</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                DEPT_COVERAGE
+              </p>
             </div>
           </>
         )}
         {activeTab === "blogs" && (
-          <div className="col-span-4 border-4 border-black bg-white p-4 text-center">
-            <p className="font-bold text-xl uppercase">
-              {editingBlogId ? "EDITING MODE" : "CREATING NEW CONTENT"}
-            </p>
-            <p className="text-sm opacity-50">AUTHOR: {blogForm.author}</p>
-          </div>
+          <>
+            <div className="border-4 border-black bg-black text-white p-6 shadow-solid-sm">
+              <p className="text-4xl font-black">{blogsList.length}</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                PUBLISHED_LOGS
+              </p>
+            </div>
+            <div className="border-4 border-black bg-white p-6 shadow-solid-sm col-span-3 flex items-center justify-between">
+              <div>
+                <p className="font-black text-xl uppercase leading-none">
+                  {editingBlogId
+                    ? "SYSTEM_STATUS: EDITING_NODE"
+                    : "SYSTEM_STATUS: IDLE // READY"}
+                </p>
+                <p className="text-[10px] opacity-50 uppercase mt-2">
+                  Operator: {blogForm.author} // Session: Encrypted
+                </p>
+              </div>
+              {!editingBlogId && (
+                <div className="hidden md:block w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              )}
+            </div>
+          </>
+        )}
+        {activeTab === "jobs" && (
+          <>
+            <div className="border-4 border-black bg-brutal-yellow p-6 shadow-solid-sm">
+              <p className="text-4xl font-black">{jobsList.length}</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                ACTIVE_BOUNTIES
+              </p>
+            </div>
+            <div className="border-4 border-black bg-brutal-red text-white p-6 shadow-solid-sm">
+              <p className="text-4xl font-black">{pendingJobs.length}</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                PENDING_APPROVAL
+              </p>
+            </div>
+            <div className="border-4 border-black bg-white p-6 shadow-solid-sm">
+              <p className="text-4xl font-black">{referrals.length}</p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                TOTAL_REFERRALS
+              </p>
+            </div>
+            <div className="border-4 border-black bg-black text-white p-6 shadow-solid-sm">
+              <p className="text-4xl font-black">
+                ₹
+                {Math.round(
+                  jobsList.reduce(
+                    (acc, job) => acc + (job.salary_max || 0),
+                    0
+                  ) / 1000
+                )}
+                k
+              </p>
+              <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
+                TOTAL_VAL_POOL
+              </p>
+            </div>
+          </>
         )}
       </div>
 
@@ -1001,90 +1133,84 @@ export default function Admin() {
         )}
         {activeTab === "blogs" && (
           <div className="space-y-12">
-            <BrutalBox
-              title={editingBlogId ? "EDIT_LOG_ENTRY" : "NEW_LOG_ENTRY"}
-              className="bg-white"
-            >
-              <div className="grid gap-6">
-                {/* Mode Toggle */}
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setIsPreviewBlog(false)}
-                    className={`flex-1 py-3 font-bold uppercase border-4 border-black transition-all flex items-center justify-center gap-2 ${
-                      !isPreviewBlog
-                        ? "bg-black text-white"
-                        : "bg-white text-black hover:bg-gray-100"
-                    }`}
-                  >
-                    <Edit size={16} /> WRITE MODE
-                  </button>
-                  <button
-                    onClick={() => setIsPreviewBlog(true)}
-                    className={`flex-1 py-3 font-bold uppercase border-4 border-black transition-all flex items-center justify-center gap-2 ${
-                      isPreviewBlog
-                        ? "bg-black text-white"
-                        : "bg-white text-black hover:bg-gray-100"
-                    }`}
-                  >
-                    <Users size={16} /> PREVIEW MODE
-                  </button>
-                </div>
-
-                {isPreviewBlog ? (
-                  renderBlogPreview()
-                ) : (
-                  <>
-                    {editingBlogId && (
-                      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-yellow-800">
-                            YOU ARE EDITING AN EXISTING POST
-                          </p>
-                          <p className="text-sm text-yellow-700">
-                            ID: {editingBlogId}
-                          </p>
-                        </div>
-                        <button
-                          onClick={resetBlogForm}
-                          className="text-black font-bold flex items-center gap-1 hover:underline"
-                        >
-                          <X size={16} /> CANCEL EDIT
-                        </button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              {/* EDITOR COLUMN */}
+              <BrutalBox
+                title={editingBlogId ? "EDIT_LOG_ENTRY" : "NEW_LOG_ENTRY"}
+                className="bg-white"
+              >
+                <div className="grid gap-6">
+                  {editingBlogId && (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-yellow-800 uppercase text-xs">
+                          EDITING_EXISTING_NODE
+                        </p>
+                        <p className="text-[10px] text-yellow-700 font-mono">
+                          ID: {editingBlogId}
+                        </p>
                       </div>
-                    )}
-                    <BrutalInput
-                      label="Article Title"
-                      placeholder="ENTER TITLE UPPERCASE PREFERRED"
-                      value={blogForm.title}
-                      onChange={(e) =>
-                        setBlogForm({ ...blogForm, title: e.target.value })
-                      }
-                    />
+                      <button
+                        onClick={resetBlogForm}
+                        className="text-black font-bold text-xs flex items-center gap-1 hover:underline uppercase"
+                      >
+                        <X size={14} /> CANCEL
+                      </button>
+                    </div>
+                  )}
+                  <BrutalInput
+                    label="Article Title"
+                    placeholder="ENTER TITLE"
+                    value={blogForm.title}
+                    onChange={(e) =>
+                      setBlogForm({ ...blogForm, title: e.target.value })
+                    }
+                  />
+                  <div className="relative">
                     <BrutalInput
                       label="Excerpt / TLDR"
-                      placeholder="SHORT SUMMARY FOR THE LISTING"
+                      placeholder="SHORT SUMMARY"
                       value={blogForm.excerpt}
                       onChange={(e) =>
                         setBlogForm({ ...blogForm, excerpt: e.target.value })
                       }
                     />
-                    <BrutalTextArea
-                      label="Main Content (Markdown Supported)"
-                      placeholder="# HEADING\n\nWRITE YOUR THOUGHTS..."
-                      className="min-h-[300px] font-mono text-sm"
-                      value={blogForm.content}
-                      onChange={(e) =>
-                        setBlogForm({ ...blogForm, content: e.target.value })
-                      }
-                    />
+                    <div className="absolute right-2 bottom-2 text-[8px] font-black uppercase opacity-30">
+                      {blogForm.excerpt.length} / 160
+                    </div>
+                  </div>
 
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <label className="font-bold uppercase block mb-2 flex items-center gap-2">
-                        <ImageIcon size={20} /> Cover Image
+                  <BrutalTextArea
+                    label="Main Content (Markdown)"
+                    placeholder="# HEADING\n\nWRITE YOUR THOUGHTS..."
+                    className="min-h-[500px] font-mono text-sm leading-relaxed mb-1"
+                    value={blogForm.content}
+                    onChange={(e) =>
+                      setBlogForm({ ...blogForm, content: e.target.value })
+                    }
+                  />
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex gap-3">
+                      <span className="text-[10px] font-black uppercase opacity-40 bg-gray-100 px-2 py-0.5 border border-black">
+                        {blogForm.content
+                          ? blogForm.content.split(/\s+/).length
+                          : 0}{" "}
+                        WORDS
+                      </span>
+                      <span className="text-[10px] font-black uppercase opacity-40 bg-gray-100 px-2 py-0.5 border border-black">
+                        {getReadTime(blogForm.content)} MIN_READ
+                      </span>
+                    </div>
+                    <div className="text-[10px] font-black uppercase opacity-40 italic">
+                      MARKDOWN_SUPPORTED
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="border-4 border-black p-4 bg-gray-50 h-full">
+                      <label className="font-bold uppercase block mb-2 flex items-center gap-2 text-xs">
+                        <ImageIcon size={16} /> Cover Image
                       </label>
-                      <p className="text-xs mb-2 opacity-50">
-                        Upload new image to replace existing one
-                      </p>
                       <input
                         type="file"
                         accept="image/*"
@@ -1096,25 +1222,66 @@ export default function Admin() {
                             });
                           }
                         }}
-                        className="block w-full text-sm font-mono file:mr-4 file:py-2 file:px-4 file:border-4 file:border-black file:text-sm file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
+                        className="block w-full text-[10px] font-mono file:mr-4 file:py-1 file:px-2 file:border-2 file:border-black file:text-[10px] file:font-bold file:bg-brutal-yellow file:text-black hover:file:bg-black hover:file:text-white transition-colors"
                       />
+                      <p className="text-[9px] mt-2 opacity-40 leading-tight uppercase font-black">
+                        Landscape aspect ratio (16:9) verified for optimal grid
+                        display.
+                      </p>
                     </div>
 
-                    <div className="mt-4">
-                      <BrutalButton
-                        onClick={handleBlogSubmit}
-                        loading={isSubmittingBlog}
-                        className="w-full text-xl py-4"
-                      >
-                        {editingBlogId
-                          ? "UPDATE LOG ENTRY"
-                          : "PUBLISH TO NETWORK"}
-                      </BrutalButton>
+                    <div className="border-4 border-black p-4 bg-black text-white text-[10px] font-black uppercase tracking-widest leading-loose h-full">
+                      <p className="border-b border-gray-700 pb-1 mb-2 text-brutal-yellow flex items-center gap-2">
+                        <PenTool size={10} /> QUICK_MARKDOWN
+                      </p>
+                      <ul className="space-y-1 opacity-80">
+                        <li className="flex justify-between">
+                          <span># Heading</span>{" "}
+                          <span className="text-gray-500">H1</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>**Bold**</span>{" "}
+                          <span className="text-gray-500">STG</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>_Italic_</span>{" "}
+                          <span className="text-gray-500">ITL</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>[Link](url)</span>{" "}
+                          <span className="text-gray-500">URL</span>
+                        </li>
+                      </ul>
                     </div>
-                  </>
-                )}
+                  </div>
+
+                  <div className="mt-8">
+                    <BrutalButton
+                      onClick={handleBlogSubmit}
+                      loading={isSubmittingBlog}
+                      className="w-full text-xl py-4 bg-brutal-yellow text-black hover:bg-black hover:text-white group"
+                    >
+                      <span className="group-hover:tracking-[0.2em] transition-all">
+                        {editingBlogId
+                          ? "EXECUTE_LOG_UPDATE"
+                          : "PUBLISH_TO_NETWORK"}
+                      </span>
+                    </BrutalButton>
+                  </div>
+                </div>
+              </BrutalBox>
+
+              {/* LIVE PREVIEW COLUMN */}
+              <div className="sticky top-8 space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-xs font-black uppercase opacity-40 flex items-center gap-2">
+                    <Terminal size={12} /> REALTIME_PREVIEW_RELAY
+                  </span>
+                  <span className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></span>
+                </div>
+                {renderBlogPreview()}
               </div>
-            </BrutalBox>
+            </div>
 
             {/* List of Existing Blogs */}
             <div className="border-t-8 border-black pt-12">
@@ -1125,27 +1292,50 @@ export default function Admin() {
                 {blogsList.map((blog) => (
                   <div
                     key={blog.id}
-                    className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4"
+                    className="border-4 border-black bg-white p-4 flex flex-col md:flex-row justify-between gap-4 group hover:bg-gray-50 transition-colors"
                   >
-                    <div>
-                      <h3 className="font-black text-xl">{blog.title}</h3>
-                      <p className="text-sm opacity-50 mb-2">
-                        ID: {blog.id} // AUTHOR: {blog.author}
-                      </p>
-                      <p className="mb-2 line-clamp-2">{blog.excerpt}</p>
+                    <div className="flex gap-4">
+                      <div className="w-16 h-16 bg-gray-200 border-2 border-black shrink-0 overflow-hidden hidden sm:block">
+                        <img
+                          src={`${apiBase}/api/blogs/${blog.id}/image`}
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                          onError={(e) => {
+                            (
+                              e.target as HTMLImageElement
+                            ).parentElement!.style.display = "none";
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-xl uppercase tracking-tighter">
+                          {blog.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 my-2">
+                          <span className="text-[10px] font-black uppercase opacity-60 bg-gray-100 px-1 border border-black">
+                            ID: {blog.id}
+                          </span>
+                          <span className="text-[10px] font-black uppercase opacity-60 bg-gray-100 px-1 border border-black">
+                            By: {blog.author}
+                          </span>
+                          <span className="text-[10px] font-black uppercase opacity-60 bg-gray-100 px-1 border border-black">
+                            <Clock size={8} className="inline mb-0.5 mr-0.5" />{" "}
+                            {getReadTime(blog.content)} MIN
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 md:items-center">
                       <button
                         onClick={() => handleEditBlog(blog)}
-                        className="bg-black text-white px-4 py-2 font-bold hover:bg-brutal-blue transition-colors flex items-center gap-2 h-fit"
+                        className="bg-black text-white px-4 py-2 font-black text-xs uppercase hover:bg-brutal-blue transition-all flex items-center gap-2 h-fit"
                       >
-                        <Edit size={16} /> EDIT
+                        <Edit size={14} /> MODIFY
                       </button>
                       <button
                         onClick={() => handleDeleteBlog(blog.id!)}
-                        className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
+                        className="bg-brutal-red text-white px-4 py-2 font-black text-xs uppercase hover:bg-black border-2 border-black transition-all flex items-center gap-2 h-fit"
                       >
-                        <Trash2 size={16} /> DELETE
+                        <Trash2 size={14} /> PURGE
                       </button>
                     </div>
                   </div>
@@ -1705,7 +1895,7 @@ export default function Admin() {
 
       {/* Footer */}
       <footer className="max-w-6xl mx-auto mt-12 border-t-4 border-black pt-4 text-center">
-        <p className="text-sm opacity-50">ADMIN_PANEL // INTERN_HUNTER</p>
+        <p className="text-sm opacity-50">ADMIN_PANEL // INTERN_OS</p>
       </footer>
     </div>
   );
