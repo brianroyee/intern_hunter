@@ -36,12 +36,12 @@ export default function App() {
       setBootProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(() => setIsBooting(false), 500);
+          setTimeout(() => setIsBooting(false), 1000);
           return 100;
         }
-        return prev + 2;
+        return prev + 1;
       });
-    }, 30);
+    }, 50);
     return () => clearInterval(interval);
   }, []);
 
