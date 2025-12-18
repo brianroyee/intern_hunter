@@ -1140,14 +1140,14 @@ export default function Admin() {
           </>
         )}
         {activeTab === "blogs" && (
-          <div className="space-y-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch h-[calc(100vh-380px)] min-h-[650px] overflow-hidden">
               {/* EDITOR COLUMN */}
               <BrutalBox
                 title={editingBlogId ? "EDIT_LOG_ENTRY" : "NEW_LOG_ENTRY"}
-                className="bg-white"
+                className="bg-white h-full flex flex-col p-0 overflow-hidden"
               >
-                <div className="grid gap-6">
+                <div className="flex-grow overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-100">
                   {editingBlogId && (
                     <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 flex justify-between items-center">
                       <div>
@@ -1262,32 +1262,59 @@ export default function Admin() {
                       </ul>
                     </div>
                   </div>
+                </div>
 
-                  <div className="mt-8">
-                    <BrutalButton
-                      onClick={handleBlogSubmit}
-                      loading={isSubmittingBlog}
-                      className="w-full text-xl py-4 bg-brutal-yellow text-black hover:bg-black hover:text-white group"
+                {/* FIXED ACTION BAR */}
+                <div className="border-t-4 border-black p-4 bg-gray-50 flex justify-between items-center z-20 shrink-0">
+                  <div className="flex gap-4">
+                    <button
+                      onClick={resetBlogForm}
+                      className="bg-white border-2 border-black p-2 hover:bg-brutal-red hover:text-white transition-colors"
+                      title="RESET_FORM"
                     >
-                      <span className="group-hover:tracking-[0.2em] transition-all">
-                        {editingBlogId
-                          ? "EXECUTE_LOG_UPDATE"
-                          : "PUBLISH_TO_NETWORK"}
-                      </span>
-                    </BrutalButton>
+                      <X size={20} />
+                    </button>
                   </div>
+                  <BrutalButton
+                    onClick={handleBlogSubmit}
+                    loading={isSubmittingBlog}
+                    className="bg-brutal-yellow text-black hover:bg-black hover:text-white px-10 py-3 text-lg font-black italic shadow-solid"
+                  >
+                    {editingBlogId
+                      ? "EXECUTE_LOG_UPDATE"
+                      : "PUBLISH_TO_NETWORK"}
+                  </BrutalButton>
                 </div>
               </BrutalBox>
 
               {/* LIVE PREVIEW COLUMN */}
-              <div className="sticky top-8 space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <span className="text-xs font-black uppercase opacity-40 flex items-center gap-2">
-                    <Terminal size={12} /> REALTIME_PREVIEW_RELAY
+              <div className="flex flex-col h-full overflow-hidden border-4 border-black bg-white shadow-hard relative">
+                <div className="absolute -top-3 left-4 bg-black text-white border-2 border-black px-2 py-0.5 transform -rotate-1 z-20">
+                  <span className="font-display font-bold uppercase text-[10px] tracking-wider flex items-center gap-2">
+                    <Terminal size={10} /> REALTIME_PREVIEW_RELAY
                   </span>
-                  <span className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></span>
                 </div>
-                {renderBlogPreview()}
+
+                <div className="absolute top-2 right-4 flex items-center gap-2 z-20 bg-white/80 backdrop-blur px-2 py-1 border border-black text-[8px] font-black uppercase">
+                  <span>SYNC_ACTIVE</span>
+                  <span className="bg-green-500 w-1.5 h-1.5 rounded-full animate-pulse"></span>
+                </div>
+
+                <div className="flex-grow overflow-y-auto p-8 pt-12 scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-100 bg-gray-50">
+                  {renderBlogPreview()}
+                </div>
+
+                <div className="border-t-4 border-black p-4 bg-white flex justify-between items-center shrink-0">
+                  <div className="text-[10px] font-black uppercase opacity-40">
+                    MONITORING_DRAFT_CID: {editingBlogId || "NEW"}
+                  </div>
+                  <div className="flex gap-2 text-[10px] font-black uppercase opacity-60">
+                    <span>
+                      WORDS: {blogForm.content?.split(/\s+/).length || 0}
+                    </span>
+                    <span>READ: {getReadTime(blogForm.content)}M</span>
+                  </div>
+                </div>
               </div>
             </div>
 
