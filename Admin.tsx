@@ -226,7 +226,7 @@ export default function Admin() {
 
       <BrutalBox
         title={`PREVIEW_NODE_00${editingBlogId || "NEW"}`}
-        className="bg-white p-0 overflow-hidden"
+        className="bg-white p-0 relative"
       >
         {/* Full fidelity preview header */}
         <div className="border-b-8 border-black">
@@ -261,34 +261,42 @@ export default function Admin() {
             )}
           </div>
 
-          <div className="p-6">
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="bg-brutal-yellow px-2 py-1 border-2 border-black text-[10px] font-black uppercase shadow-solid-sm">
+          <div className="p-6 md:p-12">
+            <div className="flex flex-wrap gap-2 mb-6">
+              <span className="bg-brutal-yellow px-3 py-1 border-2 border-black text-[10px] font-black uppercase shadow-solid-sm">
                 <Calendar size={12} className="inline mr-1" />{" "}
                 {new Date().toLocaleDateString()}
               </span>
-              <span className="bg-brutal-blue px-2 py-1 border-2 border-black text-white text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
+              <span className="bg-brutal-blue px-3 py-1 border-2 border-black text-white text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
                 <User size={12} /> {blogForm.author}
               </span>
-              <span className="bg-black text-white px-2 py-1 border-2 border-black text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
+              <span className="bg-black text-white px-3 py-1 border-2 border-black text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
                 <Clock size={12} /> {getReadTime(blogForm.content)} MIN_READ
               </span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-black uppercase leading-[0.85] tracking-tighter mb-4 text-balance">
+            <h1 className="text-4xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter mb-8 text-balance">
               {blogForm.title || "UNTITLED_LOG_ENTRY"}
             </h1>
 
-            <p className="text-sm font-bold italic leading-relaxed border-l-4 border-brutal-yellow pl-4 opacity-80">
+            <p className="text-xl md:text-2xl font-bold italic leading-relaxed border-l-8 border-brutal-yellow pl-8 opacity-80 max-w-3xl">
               {blogForm.excerpt || "Awaiting TLDR payload..."}
             </p>
           </div>
         </div>
 
-        <div className="p-6 prose prose-sm max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-2xl prose-p:leading-relaxed prose-img:border-4 prose-img:border-black prose-strong:bg-brutal-yellow prose-strong:px-1">
+        <div className="p-6 md:p-12 prose prose-lg max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-4xl prose-p:leading-relaxed prose-p:mb-8 prose-img:border-8 prose-img:border-black prose-strong:bg-brutal-yellow prose-strong:px-1">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {blogForm.content || "_Awaiting decrypted data stream..._"}
           </ReactMarkdown>
+
+          <div className="mt-20 pt-12 border-t-8 border-black border-double flex flex-col items-center text-center">
+            <div className="text-2xl mb-4">■ ■ ■</div>
+            <p className="font-black uppercase tracking-widest text-[10px] italic opacity-50">
+              END_OF_TRANSMISSION // INTERN_OS_SECURE_NODE_
+              {editingBlogId || "NEW"}
+            </p>
+          </div>
         </div>
       </BrutalBox>
 
