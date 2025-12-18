@@ -357,20 +357,20 @@ export default function BlogPostPage() {
       {showBackToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-20 right-6 z-[110] bg-white p-4 border-4 border-black shadow-solid active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all md:bottom-8"
+          className="fixed bottom-20 right-4 z-[110] bg-white p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all md:bottom-8 opacity-80"
           aria-label="Back to top"
         >
-          <ArrowUp size={24} />
+          <ArrowUp size={18} />
         </button>
       )}
 
       {/* Mobile Share Relay FAB */}
-      <div className="fixed bottom-20 left-6 z-[110] md:hidden">
+      <div className="fixed bottom-20 left-4 z-[110] md:hidden">
         <button
           onClick={() => handleShare("copy")}
-          className="bg-black text-white p-4 border-4 border-black shadow-solid active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+          className="bg-black text-white p-2.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all opacity-80"
         >
-          <Share2 size={24} />
+          <Share2 size={18} />
         </button>
       </div>
     </div>
