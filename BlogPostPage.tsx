@@ -223,32 +223,32 @@ export default function BlogPostPage() {
                 />
               </div>
 
-              <div className="p-6 md:p-12">
-                <div className="flex flex-wrap gap-2 mb-8">
-                  <span className="bg-brutal-yellow px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-solid-sm">
-                    <Calendar size={14} className="inline mr-1" />{" "}
+              <div className="p-4 md:p-12">
+                <div className="flex flex-wrap gap-1.5 mb-6 md:mb-8">
+                  <span className="bg-brutal-yellow px-2 py-0.5 border-2 border-black text-[10px] md:text-xs font-black uppercase shadow-solid-sm">
+                    <Calendar size={10} className="inline mr-1" />{" "}
                     {formatDate(post.createdAt)}
                   </span>
-                  <span className="bg-brutal-blue px-3 py-1 border-2 border-black text-white text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
-                    <User size={14} /> {post.author}
+                  <span className="bg-brutal-blue px-2 py-0.5 border-2 border-black text-white text-[10px] md:text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                    <User size={10} /> {post.author}
                   </span>
-                  <span className="bg-black text-white px-3 py-1 border-2 border-black text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
-                    <Clock size={14} /> {getReadTime(post.content)} MIN_READ
+                  <span className="bg-black text-white px-2 py-0.5 border-2 border-black text-[10px] md:text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                    <Clock size={10} /> {getReadTime(post.content)} MIN
                   </span>
                 </div>
 
-                <h1 className="text-4xl md:text-8xl font-black uppercase leading-[0.85] tracking-tighter mb-8 text-balance">
+                <h1 className="text-3xl md:text-8xl font-black uppercase leading-[0.85] tracking-tighter mb-6 md:mb-8 text-balance">
                   {post.title}
                 </h1>
 
-                <p className="text-xl md:text-2xl font-bold italic leading-relaxed border-l-8 border-brutal-yellow pl-8 opacity-80 max-w-3xl">
+                <p className="text-lg md:text-2xl font-bold italic leading-relaxed border-l-4 md:border-l-8 border-brutal-yellow pl-4 md:pl-8 opacity-80 max-w-3xl">
                   {post.excerpt}
                 </p>
               </div>
             </div>
 
             {/* Reading Content */}
-            <div className="p-6 md:p-12 md:pb-24">
+            <div className="p-4 md:p-12 md:pb-24">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-12">
                 <div className="prose prose-lg md:prose-xl max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-4xl md:prose-headings:text-5xl prose-headings:mt-12 prose-headings:mb-6 prose-p:leading-relaxed prose-p:mb-8 prose-img:border-8 prose-img:border-black prose-img:shadow-hard prose-strong:bg-brutal-yellow prose-strong:px-1 prose-a:text-brutal-blue prose-a:underline prose-a:font-black">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>

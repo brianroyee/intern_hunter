@@ -261,31 +261,31 @@ export default function Admin() {
             )}
           </div>
 
-          <div className="p-6 md:p-12">
-            <div className="flex flex-wrap gap-2 mb-6">
-              <span className="bg-brutal-yellow px-3 py-1 border-2 border-black text-[10px] font-black uppercase shadow-solid-sm">
-                <Calendar size={12} className="inline mr-1" />{" "}
+          <div className="p-4 md:p-12">
+            <div className="flex flex-wrap gap-1.5 mb-6 md:mb-8">
+              <span className="bg-brutal-yellow px-2 py-0.5 border-2 border-black text-[10px] md:text-xs font-black uppercase shadow-solid-sm">
+                <Calendar size={10} className="inline mr-1" />{" "}
                 {new Date().toLocaleDateString()}
               </span>
-              <span className="bg-brutal-blue px-3 py-1 border-2 border-black text-white text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
-                <User size={12} /> {blogForm.author}
+              <span className="bg-brutal-blue px-2 py-0.5 border-2 border-black text-white text-[10px] md:text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                <User size={10} /> {blogForm.author}
               </span>
-              <span className="bg-black text-white px-3 py-1 border-2 border-black text-[10px] font-black uppercase flex items-center gap-1 shadow-solid-sm">
-                <Clock size={12} /> {getReadTime(blogForm.content)} MIN_READ
+              <span className="bg-black text-white px-2 py-0.5 border-2 border-black text-[10px] md:text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                <Clock size={10} /> {getReadTime(blogForm.content)} MIN
               </span>
             </div>
 
-            <h1 className="text-4xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter mb-8 text-balance">
+            <h1 className="text-3xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter mb-6 md:mb-8 text-balance">
               {blogForm.title || "UNTITLED_LOG_ENTRY"}
             </h1>
 
-            <p className="text-xl md:text-2xl font-bold italic leading-relaxed border-l-8 border-brutal-yellow pl-8 opacity-80 max-w-3xl">
+            <p className="text-lg md:text-2xl font-bold italic leading-relaxed border-l-4 md:border-l-8 border-brutal-yellow pl-4 md:pl-8 opacity-80 max-w-3xl">
               {blogForm.excerpt || "Awaiting TLDR payload..."}
             </p>
           </div>
         </div>
 
-        <div className="p-6 md:p-12 prose prose-lg max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-4xl prose-p:leading-relaxed prose-p:mb-8 prose-img:border-8 prose-img:border-black prose-strong:bg-brutal-yellow prose-strong:px-1">
+        <div className="p-4 md:p-12 prose prose-lg max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-4xl prose-p:leading-relaxed prose-p:mb-8 prose-img:border-8 prose-img:border-black prose-strong:bg-brutal-yellow prose-strong:px-1">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {blogForm.content || "_Awaiting decrypted data stream..._"}
           </ReactMarkdown>
