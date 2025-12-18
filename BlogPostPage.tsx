@@ -9,6 +9,13 @@ import {
   Linkedin,
   Link as LinkIcon,
   Check,
+  Clock,
+  ArrowUp,
+  Terminal,
+  Wifi,
+  Signal,
+  Share2,
+  FileText,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -28,8 +35,26 @@ export default function BlogPostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight =
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight;
+      const scrollValue = (totalScroll / windowHeight) * 100;
+
+      setScrollProgress(scrollValue || 0);
+      setShowBackToTop(totalScroll > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -57,9 +82,19 @@ export default function BlogPostPage() {
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const getReadTime = (content: string) => {
+    if (!content) return 1;
+    const wordsPerMinute = 200;
+    const words = content.split(/\s+/).length;
+    return Math.ceil(words / wordsPerMinute);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleShare = (platform: "twitter" | "linkedin" | "copy") => {
     const url = window.location.href;
-    const text = `Check out this log entry: ${post?.title}`;
 
     if (platform === "twitter") {
       const tweetText = `"${post?.title.toUpperCase()}"\n\n${post?.excerpt}`;
@@ -85,9 +120,10 @@ export default function BlogPostPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brutal-bg flex items-center justify-center font-mono">
-        <p className="text-2xl font-black uppercase animate-pulse">
-          LOADING LOG ENTRY...
+      <div className="min-h-screen bg-brutal-bg flex flex-col items-center justify-center font-mono p-8 text-center">
+        <div className="w-16 h-16 border-8 border-black border-t-brutal-yellow animate-spin mb-4" />
+        <p className="text-2xl font-black uppercase tracking-tighter">
+          DECRYPTING_DATA_STREAM...
         </p>
       </div>
     );
@@ -95,12 +131,18 @@ export default function BlogPostPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-brutal-bg p-8 font-mono flex flex-col items-center justify-center">
-        <BrutalBox className="bg-white text-center max-w-md">
-          <h1 className="text-4xl font-black mb-4">404 ERROR</h1>
-          <p className="mb-6">{error || "LOG ENTRY NOT FOUND"}</p>
-          <Link to="/blogs">
-            <BrutalButton>RETURN TO ARCHIVES</BrutalButton>
+      <div className="min-h-screen bg-brutal-bg p-4 md:p-8 font-mono flex flex-col items-center justify-center">
+        <BrutalBox className="bg-white text-center max-w-md shadow-hard border-8 border-black">
+          <Terminal
+            size={48}
+            className="mx-auto mb-4 text-brutal-red animate-pulse"
+          />
+          <h1 className="text-4xl font-black mb-4 uppercase">404 ERROR</h1>
+          <p className="mb-8 font-black uppercase opacity-60">
+            {error || "FILE_NOT_FOUND"}
+          </p>
+          <Link to="/blogs" className="w-full">
+            <BrutalButton className="w-full">RETURN_TO_ARCHIVES</BrutalButton>
           </Link>
         </BrutalBox>
       </div>
@@ -108,87 +150,214 @@ export default function BlogPostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-brutal-bg p-4 md:p-8 font-mono selection:bg-brutal-yellow selection:text-black">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Link to="/blogs">
-            <BrutalButton variant="secondary" className="text-sm">
-              <ArrowLeft className="inline mr-2" size={16} />
-              BACK TO LOGS
+    <div className="min-h-screen bg-brutal-bg p-4 md:p-8 font-mono selection:bg-brutal-yellow selection:text-black mb-16 md:mb-0">
+      {/* MOBILE INDUSTRIAL STATUS BAR */}
+      <div className="fixed bottom-0 left-0 w-full z-[100] bg-black text-white py-2 px-4 shadow-[0_-8px_16px_rgba(0,0,0,0.2)] md:hidden flex justify-between items-center border-t-2 border-brutal-yellow">
+        <div className="flex items-center gap-3">
+          <Terminal size={12} className="text-brutal-yellow animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-tighter">
+            USER@INTERN_OS: READ_MODE
+          </span>
+        </div>
+        <div className="flex-grow mx-4 relative h-1 bg-gray-800">
+          <div
+            className="absolute top-0 left-0 h-full bg-brutal-yellow transition-all duration-100"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black">
+            {Math.round(scrollProgress)}%
+          </span>
+          <Wifi size={10} className="text-brutal-yellow" />
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto">
+        {/* Navigation / Header */}
+        <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b-4 border-black pb-8">
+          <Link to="/blogs" className="group">
+            <BrutalButton
+              variant="secondary"
+              className="flex items-center gap-2 group-hover:-translate-x-1 transition-transform"
+            >
+              <ArrowLeft size={18} />
+              BACK_TO_KNOWLEDGE_BASE
             </BrutalButton>
           </Link>
+          <div className="flex items-center gap-2 font-black text-xs uppercase opacity-40">
+            <FileText size={14} />
+            <span>intern_os // blog_id: {post.id}</span>
+          </div>
         </div>
 
-        <BrutalBox className="bg-white mb-12">
-          <div className="border-b-4 border-black pb-6 mb-6">
-            {/* Image */}
-            <div className="border-4 border-black mb-6">
-              <img
-                src={`${apiBase}/api/blogs/${post.id}/image`}
-                alt={post.title}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                  (e.target as HTMLImageElement).parentElement!.style.display =
-                    "none";
-                }}
-                className="w-full max-h-[500px] object-cover"
-              />
+        <article className="animate-fade-in-up">
+          <BrutalBox
+            title={`SECURED_CONTENT_LOG_00${post.id}`}
+            className="bg-white overflow-hidden p-0"
+          >
+            {/* Hero Section */}
+            <div className="border-b-8 border-black">
+              {/* Image */}
+              <div className="border-b-4 border-black bg-gray-100 overflow-hidden">
+                <img
+                  src={`${apiBase}/api/blogs/${post.id}/image`}
+                  alt={post.title}
+                  onError={(e) => {
+                    (
+                      e.target as HTMLImageElement
+                    ).parentElement!.style.display = "none";
+                  }}
+                  className="w-full max-h-[600px] object-cover"
+                />
+              </div>
+
+              <div className="p-6 md:p-12">
+                <div className="flex flex-wrap gap-2 mb-8">
+                  <span className="bg-brutal-yellow px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-solid-sm">
+                    <Calendar size={14} className="inline mr-1" />{" "}
+                    {formatDate(post.createdAt)}
+                  </span>
+                  <span className="bg-brutal-blue px-3 py-1 border-2 border-black text-white text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                    <User size={14} /> {post.author}
+                  </span>
+                  <span className="bg-black text-white px-3 py-1 border-2 border-black text-xs font-black uppercase flex items-center gap-1 shadow-solid-sm">
+                    <Clock size={14} /> {getReadTime(post.content)} MIN_READ
+                  </span>
+                </div>
+
+                <h1 className="text-4xl md:text-8xl font-black uppercase leading-[0.85] tracking-tighter mb-8 text-balance">
+                  {post.title}
+                </h1>
+
+                <p className="text-xl md:text-2xl font-bold italic leading-relaxed border-l-8 border-brutal-yellow pl-8 opacity-80 max-w-3xl">
+                  {post.excerpt}
+                </p>
+              </div>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black uppercase leading-tight mb-4 text-balance">
-              {post.title}
-            </h1>
+            {/* Reading Content */}
+            <div className="p-6 md:p-12 md:pb-24">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-12">
+                <div className="prose prose-lg md:prose-xl max-w-none font-mono prose-headings:font-display prose-headings:uppercase prose-headings:tracking-tighter prose-headings:text-4xl md:prose-headings:text-5xl prose-headings:mt-12 prose-headings:mb-6 prose-p:leading-relaxed prose-p:mb-8 prose-img:border-8 prose-img:border-black prose-img:shadow-hard prose-strong:bg-brutal-yellow prose-strong:px-1 prose-a:text-brutal-blue prose-a:underline prose-a:font-black">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {post.content}
+                  </ReactMarkdown>
 
-            <div className="flex flex-wrap gap-4 text-sm font-bold uppercase text-gray-600">
-              <span className="flex items-center gap-1 bg-brutal-yellow px-2 py-1 border-2 border-black text-black">
-                <Calendar size={14} /> {formatDate(post.createdAt)}
-              </span>
-              <span className="flex items-center gap-1 bg-brutal-blue px-2 py-1 border-2 border-black text-white">
-                <User size={14} /> {post.author}
-              </span>
-            </div>
+                  <div className="mt-20 pt-12 border-t-8 border-black border-double flex flex-col items-center text-center">
+                    <div className="text-4xl mb-4">■ ■ ■</div>
+                    <p className="font-black uppercase tracking-widest text-sm italic opacity-50">
+                      END_OF_TRANSMISSION // INTERN_OS_SECURE_NODE_{post.id}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => handleShare("twitter")}
-                className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
-                title="Share on Twitter"
-              >
-                <Twitter size={20} />
-              </button>
-              <button
-                onClick={() => handleShare("linkedin")}
-                className="bg-black text-white p-2 hover:bg-brutal-blue transition-colors border-2 border-black"
-                title="Share on LinkedIn"
-              >
-                <Linkedin size={20} />
-              </button>
-              <button
-                onClick={() => handleShare("copy")}
-                className={`p-2 border-2 border-black transition-colors ${
-                  copied
-                    ? "bg-green-500 text-white"
-                    : "bg-black text-white hover:bg-brutal-blue"
-                }`}
-                title="Copy Link"
-              >
-                {copied ? <Check size={20} /> : <LinkIcon size={20} />}
-              </button>
+                {/* Sidebar / Share Relay */}
+                <aside className="space-y-8 sticky top-8 h-fit hidden lg:block">
+                  <div className="border-4 border-black p-6 bg-gray-50">
+                    <h4 className="font-black uppercase text-xs mb-4 pb-2 border-b-2 border-black flex items-center gap-2">
+                      <Share2 size={14} /> SIGNAL_RELAY
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => handleShare("twitter")}
+                        className="w-full bg-white border-2 border-black p-3 font-black text-xs uppercase hover:bg-black hover:text-white transition-all flex items-center justify-between group"
+                      >
+                        TWITTER_X
+                        <Twitter
+                          size={16}
+                          className="group-hover:rotate-12 transition-transform"
+                        />
+                      </button>
+                      <button
+                        onClick={() => handleShare("linkedin")}
+                        className="w-full bg-white border-2 border-black p-3 font-black text-xs uppercase hover:bg-brutal-blue hover:text-white transition-all flex items-center justify-between group"
+                      >
+                        LINKEDIN
+                        <Linkedin
+                          size={16}
+                          className="group-hover:rotate-12 transition-transform"
+                        />
+                      </button>
+                      <button
+                        onClick={() => handleShare("copy")}
+                        className={`w-full border-2 border-black p-3 font-black text-xs uppercase transition-all flex items-center justify-between group ${
+                          copied
+                            ? "bg-green-500 text-white"
+                            : "bg-white hover:bg-brutal-yellow"
+                        }`}
+                      >
+                        {copied ? "COPIED_CID" : "COPY_LINK"}
+                        {copied ? (
+                          <Check size={16} />
+                        ) : (
+                          <LinkIcon
+                            size={16}
+                            className="group-hover:rotate-12 transition-transform"
+                          />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-4 border-black p-4 bg-black text-white">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-black uppercase opacity-60">
+                        Read Progress
+                      </span>
+                      <span className="text-xs font-black">
+                        {Math.round(scrollProgress)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-800 relative">
+                      <div
+                        className="absolute top-0 left-0 h-full bg-brutal-yellow shadow-[0_0_8px_rgba(244,255,0,0.5)] transition-all"
+                        style={{ width: `${scrollProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                </aside>
+              </div>
             </div>
+          </BrutalBox>
+        </article>
+
+        <footer className="mt-20 border-t-8 border-black pt-12 pb-24 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div>
+            <h2 className="text-2xl font-black uppercase mb-2">
+              INTERN_OS // KNOWLEDGE
+            </h2>
+            <p className="font-mono text-[10px] uppercase opacity-40">
+              System Node: BLOG_SERVER_V1 // AUTHORIZED_ACCESS_ONLY
+            </p>
           </div>
-
-          <div className="prose prose-lg max-w-none font-mono prose-headings:font-mono prose-headings:uppercase prose-headings:font-black prose-p:font-medium prose-img:border-4 prose-img:border-black">
-            <div className="whitespace-pre-wrap leading-relaxed text-lg">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {post.content}
-              </ReactMarkdown>
-            </div>
-          </div>
-        </BrutalBox>
-
-        <footer className="text-center pb-12 opacity-50 text-sm">
-          END OF LOG ENTRY // {post.id}
+          <Link to="/blogs/archive">
+            <BrutalButton className="bg-brutal-yellow text-black hover:bg-black hover:text-white text-lg py-4 px-12">
+              BROWSE_FULL_ARCHIVE
+            </BrutalButton>
+          </Link>
         </footer>
+      </div>
+
+      {/* MOBILE INTERACTIVE ELEMENTS */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-20 right-6 z-[110] bg-white p-4 border-4 border-black shadow-solid active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all md:bottom-8"
+          aria-label="Back to top"
+        >
+          <ArrowUp size={24} />
+        </button>
+      )}
+
+      {/* Mobile Share Relay FAB */}
+      <div className="fixed bottom-20 left-6 z-[110] md:hidden">
+        <button
+          onClick={() => handleShare("copy")}
+          className="bg-black text-white p-4 border-4 border-black shadow-solid active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+        >
+          <Share2 size={24} />
+        </button>
       </div>
     </div>
   );

@@ -16,9 +16,9 @@ export default function LandingPage() {
                 V.1.5 LIVE
               </div>
 
-              <h1 className="font-display text-6xl md:text-9xl uppercase leading-[0.8] tracking-tighter mb-6 break-words">
-                Intern
-                <br /> Hunter
+              <h1 className="font-display text-5xl md:text-9xl uppercase leading-[0.8] tracking-tighter mb-6 break-words">
+                intern
+                <br /> _os
               </h1>
               <p className="text-2xl md:text-3xl font-bold uppercase tracking-widest border-t-8 border-black pt-6 flex items-center gap-3">
                 <Terminal size={32} />

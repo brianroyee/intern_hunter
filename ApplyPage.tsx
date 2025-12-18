@@ -146,7 +146,7 @@ export default function ApplyPage() {
       <header className="mb-12 border-b-8 border-black pb-6 max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <h1 className="font-display text-4xl md:text-8xl uppercase leading-[0.9] tracking-tighter break-words">
-            Intern<span className="text-brutal-red">_</span>Hunter
+            intern<span className="text-brutal-red">_</span>os
           </h1>
           <p className="mt-4 text-xl font-bold uppercase tracking-widest flex items-center gap-2">
             <Terminal size={24} />
