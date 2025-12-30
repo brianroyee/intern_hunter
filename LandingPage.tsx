@@ -38,15 +38,15 @@ export default function LandingPage() {
             className="flex flex-col gap-6 animate-fade-in-up"
             style={{ animationDelay: "0.1s" }}
           >
-            {/* OPTION 1: ENROLL FOR OPENINGS (APPLY) */}
-            <Link to="/apply" className="group">
+            {/* OPTION 1: LOG_IN / DASHBOARD */}
+            <Link to="/dashboard" className="group">
               <div className="bg-white border-8 border-black p-6 hover:bg-brutal-yellow transition-all hover:translate-x-2 hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_#000]">
                 <h2 className="text-3xl md:text-5xl font-black uppercase mb-2 group-hover:underline decoration-4">
-                  <UserPlus className="inline mb-2 mr-3" size={36} />
-                  1. Enroll for Openings
+                  <Terminal className="inline mb-2 mr-3" size={36} />
+                  1. Launch Dashboard
                 </h2>
                 <p className="font-bold opacity-60 uppercase">
-                  For Candidates // Submit your payload
+                  Candidate Hub // Track Missions
                 </p>
               </div>
             </Link>

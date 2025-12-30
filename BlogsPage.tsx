@@ -13,9 +13,10 @@ import {
   Wifi,
   Signal,
 } from "lucide-react";
+import { supabase } from "./lib/supabase";
 
 interface BlogPost {
-  id: number;
+  id: string;
   title: string;
   excerpt: string;
   content: string;
@@ -30,8 +31,6 @@ export default function BlogsPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -55,7 +54,7 @@ export default function BlogsPage() {
   }, []);
 
   useEffect(() => {
-    // Attempt to load from cache first for instant UI
+    // Attempt to load from cache first
     const cachedPosts = localStorage.getItem("intern_os_blogs");
     if (cachedPosts) {
       try {
@@ -68,13 +67,25 @@ export default function BlogsPage() {
 
     const fetchPosts = async () => {
       try {
-        const response = await fetch(`${apiBase}/api/blogs`);
-        if (response.ok) {
-          const data = await response.json();
-          setPosts(data);
-          // Store in cache
-          localStorage.setItem("intern_os_blogs", JSON.stringify(data));
-        }
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const formattedPosts = (data || []).map((doc: any) => ({
+          id: doc.id,
+          title: doc.title,
+          excerpt: doc.excerpt,
+          content: doc.content,
+          author: doc.author,
+          createdAt: doc.created_at,
+          imageBase64: doc.image_url, // Using image_url directly
+        }));
+
+        setPosts(formattedPosts);
+        localStorage.setItem("intern_os_blogs", JSON.stringify(formattedPosts));
       } catch (error) {
         console.error("Failed to load blogs", error);
       } finally {
@@ -82,7 +93,7 @@ export default function BlogsPage() {
       }
     };
     fetchPosts();
-  }, [apiBase]);
+  }, []);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString();
@@ -194,7 +205,7 @@ export default function BlogsPage() {
                       <Link to={`/blogs/${featuredPost.id}`}>
                         <div className="relative border-4 border-black group overflow-hidden touch-manipulation shadow-hard hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
                           <img
-                            src={`${apiBase}/api/blogs/${featuredPost.id}/image`}
+                            src={featuredPost.imageBase64 || ""}
                             alt={featuredPost.title}
                             className="w-full h-[300px] md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-700"
                             onError={(e) => {
@@ -264,7 +275,7 @@ export default function BlogsPage() {
                         <Link to={`/blogs/${post.id}`}>
                           <div className="border-4 border-black overflow-hidden aspect-[4/3] relative mb-6">
                             <img
-                              src={`${apiBase}/api/blogs/${post.id}/image`}
+                              src={post.imageBase64 || ""}
                               alt={post.title}
                               className="w-full h-full object-cover transition-all"
                               onError={(e) => {

@@ -19,14 +19,17 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { supabase } from "./lib/supabase";
 
 interface BlogPost {
-  id: number;
+  id: string; // Changed to string
   title: string;
   excerpt: string;
   content: string;
   author: string;
   createdAt: string;
+  imageBase64?: string; // We'll store the URL here for compatibility
+  imageId?: string;
 }
 
 export default function BlogPostPage() {
@@ -37,8 +40,6 @@ export default function BlogPostPage() {
   const [copied, setCopied] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
-
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -69,16 +70,35 @@ export default function BlogPostPage() {
 
     const fetchPost = async () => {
       try {
-        const response = await fetch(`${apiBase}/api/blogs/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setPost(data);
-          localStorage.setItem(`intern_os_blog_${id}`, JSON.stringify(data));
-        } else {
-          setError("Blog post not found.");
-        }
+        if (!id) return;
+        const { data: response, error } = await supabase
+          .from("blog_posts")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+
+        // Convert to compatible format
+        const formattedPost: BlogPost = {
+          id: response.id,
+          title: response.title,
+          excerpt: response.excerpt,
+          content: response.content,
+          author: response.author,
+          createdAt: response.created_at,
+          imageId: undefined, // Legacy support field
+          imageBase64: response.image_url,
+        };
+
+        setPost(formattedPost);
+        localStorage.setItem(
+          `intern_os_blog_${id}`,
+          JSON.stringify(formattedPost)
+        );
       } catch (err) {
-        setError("Failed to load blog post.");
+        console.error(err);
+        setError("Blog post not found.");
       } finally {
         setLoading(false);
       }
@@ -87,7 +107,7 @@ export default function BlogPostPage() {
     if (id) {
       fetchPost();
     }
-  }, [id, apiBase]);
+  }, [id]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString();
@@ -212,7 +232,7 @@ export default function BlogPostPage() {
               {/* Image */}
               <div className="border-b-4 border-black bg-gray-100 overflow-hidden">
                 <img
-                  src={`${apiBase}/api/blogs/${post.id}/image`}
+                  src={post.imageBase64 || ""}
                   alt={post.title}
                   onError={(e) => {
                     (

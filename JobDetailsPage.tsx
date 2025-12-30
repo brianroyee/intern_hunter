@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "./lib/supabase";
+import { User } from "@supabase/supabase-js";
 import {
   BrutalBox,
   BrutalButton,
@@ -21,7 +24,7 @@ import {
 } from "lucide-react";
 
 interface Job {
-  id: number;
+  id: string;
   title: string;
   company: string;
   company_url: string;
@@ -31,19 +34,22 @@ interface Job {
   equity: string;
   tags: string[];
   description: string;
-  apply_url: string;
+  applyUrl: string;
   linkedin_url?: string;
   twitter_url?: string;
   instagram_url?: string;
-  created_at?: string;
-  location_type?: string;
-  company_description?: string;
+  created_at: string;
+  locationType?: string;
+  companyDescription?: string;
 }
 
 export default function JobDetailsPage() {
   const { id } = useParams();
+  const { user, profile, login } = useAuth();
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
 
   // Referral Form State
@@ -55,19 +61,42 @@ export default function JobDetailsPage() {
   });
   const [submittingRef, setSubmittingRef] = useState(false);
 
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
-
   useEffect(() => {
     fetchJob();
   }, [id]);
 
   const fetchJob = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/jobs/${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setJob(data);
-      }
+      if (!id) return;
+      const { data: doc, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      const formattedJob = {
+        id: doc.id,
+        title: doc.title,
+        company: doc.company,
+        company_url: doc.company_url,
+        location: doc.location,
+        locationType: doc.location_type,
+        salary_min: doc.salary_min,
+        salary_max: doc.salary_max,
+        equity: doc.equity,
+        tags: doc.tags || [],
+        description: doc.description,
+        applyUrl: doc.apply_url,
+        linkedin_url: doc.linkedin_url,
+        twitter_url: doc.twitter_url,
+        instagram_url: doc.instagram_url,
+        created_at: doc.created_at,
+        companyDescription: doc.company_description,
+      };
+
+      setJob(formattedJob);
     } catch (error) {
       console.error("Failed to fetch job", error);
     } finally {
@@ -75,17 +104,49 @@ export default function JobDetailsPage() {
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!job) return;
-    if (job.apply_url) {
-      window.open(job.apply_url, "_blank");
-    } else {
-      // If no external URL, we could route to our internal apply page,
-      // passing the job title in state or query param.
-      // For now, let's just alert or redirect to /apply
-      window.location.href = "/apply";
+
+    if (!user) {
+      login();
+      return;
+    }
+
+    if (!profile) {
+      navigate("/onboarding");
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      // Need snapshot data. If profile is missing, we use fallbacks from Auth user
+      const fullName = profile?.name || user.email?.split("@")[0] || "Unknown";
+      const email = user.email || "no-email";
+
+      const { error } = await supabase.from("applications").insert([
+        {
+          student_id: user.id,
+          job_id: job.id,
+          status: "pending",
+          full_name: fullName,
+          email: email,
+          department: profile?.field_of_study || "General",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+      if (error) throw error;
+
+      alert("MISSION_ACCEPTED: APPLICATION_SENT_SUCCESSFULLY");
+    } catch (error) {
+      console.error("Quick Apply Error:", error);
+      alert("TRANSMISSION_FAILED: CHECK_CONSOLE");
+    } finally {
+      setIsApplying(false);
     }
   };
+
+  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
 
   const handleReferralSubmit = async () => {
     if (!refForm.name || !refForm.email || !refForm.why_me) {
@@ -219,13 +280,13 @@ export default function JobDetailsPage() {
               POSTED{" "}
               {Math.floor(
                 (new Date().getTime() -
-                  new Date(job.created_at || "").getTime()) /
+                  new Date(job.created_at || new Date()).getTime()) /
                   (1000 * 3600 * 24)
               ) < 1
                 ? "Today"
                 : `${Math.floor(
                     (new Date().getTime() -
-                      new Date(job.created_at || "").getTime()) /
+                      new Date(job.created_at || new Date()).getTime()) /
                       (1000 * 3600 * 24)
                   )}d ago`}
             </p>
@@ -257,7 +318,7 @@ export default function JobDetailsPage() {
             </p>
             <p className="text-lg md:text-2xl font-black">{job.location}</p>
             <p className="text-sm font-bold opacity-50 uppercase">
-              {job.location_type || "Remote"}
+              {job.locationType || "Remote"}
             </p>
           </div>
           <div className="p-4 text-center md:text-left">
@@ -280,10 +341,10 @@ export default function JobDetailsPage() {
               </div>
             </BrutalBox>
 
-            {job.company_description && (
+            {job.companyDescription && (
               <BrutalBox title={`ABOUT ${job.company}`} className="bg-white">
                 <div className="prose font-mono whitespace-pre-wrap">
-                  {job.company_description}
+                  {job.companyDescription}
                 </div>
               </BrutalBox>
             )}

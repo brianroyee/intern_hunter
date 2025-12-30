@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from "lucide-react";
+import { supabase } from "./lib/supabase";
 
 export default function ApplyPage() {
   const [step, setStep] = useState<number>(1);
@@ -95,46 +96,94 @@ export default function ApplyPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    const submitData = new FormData();
-    submitData.append("fullName", formData.fullName);
-    submitData.append("email", formData.email);
-    submitData.append("phone", formData.phone);
-    submitData.append("department", formData.department);
-    submitData.append("education", formData.education);
-    submitData.append("experienceLevel", formData.experienceLevel);
-    submitData.append("skills", JSON.stringify(formData.skills));
-    submitData.append("bio", formData.bio);
-    submitData.append("portfolioUrl", formData.portfolioUrl);
-    submitData.append(
-      "subscribeToNewsletter",
-      String(formData.subscribeToNewsletter)
-    );
-    if (file) {
-      submitData.append("cv", file);
-    }
-
     try {
-      const apiUrl = import.meta.env.DEV
-        ? "http://localhost:3000/api/apply"
-        : "/api/apply";
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: submitData,
-      });
+      let cvUrl = "";
+      let cvPath = "";
 
-      if (response.ok) {
-        alert(
-          "YOOO YOU'RE LOCKED IN FR FR 🔥 Application sent successfully! No cap, we'll hit you up soon mate!"
-        );
-        window.location.reload();
+      // 1. Upload CV if exists
+      if (file) {
+        try {
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError, data } = await supabase.storage
+            .from("resumes")
+            .upload(filePath, file);
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          cvPath = data.path;
+
+          // Get Public URL
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("resumes").getPublicUrl(cvPath);
+
+          cvUrl = publicUrl;
+        } catch (uploadError) {
+          console.error("CV Upload failed:", uploadError);
+          alert("Failed to upload CV. Please try again.");
+          setIsSubmitting(false);
+          return;
+        }
       } else {
-        throw new Error("Backend Error");
+        alert("CV is mandatory!");
+        setIsSubmitting(false);
+        return;
       }
-    } catch (error) {
-      console.error(error);
+
+      // 2. Create Application Document
+      const payload = {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        department: formData.department,
+        education: formData.education,
+        experience_level: formData.experienceLevel,
+        skills: formData.skills,
+        bio: formData.bio,
+        portfolio_url: formData.portfolioUrl,
+        cv_filename: file.name,
+        cv_url: cvUrl,
+        subscribe_to_newsletter: formData.subscribeToNewsletter,
+        status: "pending",
+        job_id: "general_pool", // Default
+        student_id: "guest_" + Math.random().toString(36).substr(2, 9),
+      };
+
+      const { error: insertError } = await supabase
+        .from("applications")
+        .insert([payload]);
+
+      if (insertError) {
+        throw insertError;
+      }
+
       alert(
         "YOOO YOU'RE LOCKED IN FR FR 🔥 Application sent successfully! No cap, we'll hit you up soon mate!"
       );
+
+      // Reset form
+      setStep(1);
+      setFormData({
+        fullName: "",
+        email: "",
+        phone: "",
+        department: "",
+        skills: [],
+        bio: "",
+        experienceLevel: "intern",
+        education: "",
+        portfolioUrl: "",
+        subscribeToNewsletter: false,
+      });
+      setFile(null);
+    } catch (error) {
+      console.error(error);
+      alert("Submission failed. Please check the logs or try again.");
     } finally {
       setIsSubmitting(false);
     }

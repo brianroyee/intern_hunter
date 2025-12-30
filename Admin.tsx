@@ -30,19 +30,22 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { supabase, SUPABASE_CONFIG } from "./lib/supabase";
 
 interface BlogPost {
-  id?: number;
+  id?: string;
   title: string;
   excerpt: string;
   content: string;
   author: string;
   image: File | null;
+  imageId?: string; // This will hold the Public URL in Supabase context or just remain unused if we use image_url directly
+  imageUrl?: string;
   createdAt?: string;
 }
 
 interface JobPost {
-  id?: number;
+  id?: string;
   title: string;
   company: string;
   company_url: string;
@@ -55,49 +58,41 @@ interface JobPost {
   company_description?: string;
   apply_url: string;
   created_at?: string;
-  location_type?: string;
-  internship_type?: string;
+  locationType?: string;
+  internshipType?: string;
   duration?: string;
-  academic_year?: string;
+  academicYear?: string;
   discipline?: string;
-  compensation_type?: string;
-  locationType?: string; // For form handling
-  internshipType?: string; // For form handling
-  academicYear?: string; // For form handling
-  compensationType?: string; // For form handling
+  compensationType?: string;
   linkedin_url?: string;
   twitter_url?: string;
   instagram_url?: string;
   admin_rating?: number;
   admin_comments?: string;
+  status?: string;
+  creatorId?: string;
 }
 
 interface Application {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  department: string;
-  experienceLevel: string;
-  skills: string;
-  bio: string;
-  portfolioUrl: string;
-  cvFilename: string | null;
-  subscribeToNewsletter: number;
-  submittedAt: string;
-}
-
-interface Referral {
-  id: number;
-  job_id: number;
-  name: string;
-  email: string;
-  linkedin: string;
-  why_me: string;
+  id: string;
+  studentId: string;
+  jobId: string;
   status: string;
-  created_at: string;
-  job_title?: string;
-  company?: string;
+  appliedAt: string;
+  // Snapshot Fields
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  department?: string;
+  experienceLevel?: string;
+  skills?: string;
+  education?: string;
+  bio?: string;
+  portfolioUrl?: string;
+  cvFileId?: string; // Will store Path or URL
+  cvUrl?: string; // Direct URL
+  cvFilename?: string;
+  subscribeToNewsletter?: boolean;
 }
 
 // CONSTANTS FOR DROPDOWNS
@@ -148,13 +143,12 @@ const DISCIPLINES = [
 ];
 
 export default function Admin() {
+  // State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [storedPassword, setStoredPassword] = useState("");
 
   // Blog State
@@ -170,14 +164,14 @@ export default function Admin() {
     image: null,
   });
   const [isSubmittingBlog, setIsSubmittingBlog] = useState(false);
-  const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
   const [isPreviewBlog, setIsPreviewBlog] = useState(false);
 
   // Job State
   const [jobsList, setJobsList] = useState<JobPost[]>([]);
   const [pendingJobs, setPendingJobs] = useState<JobPost[]>([]);
   const [reviews, setReviews] = useState<{
-    [key: number]: { rating: number; comments: string };
+    [key: string]: { rating: number; comments: string };
   }>({});
   const [jobForm, setJobForm] = useState<JobPost>({
     title: "",
@@ -193,11 +187,11 @@ export default function Admin() {
     apply_url: "",
   });
   const [isSubmittingJob, setIsSubmittingJob] = useState(false);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [editingJobId, setEditingJobId] = useState<number | null>(null);
-  const [showReferralsFor, setShowReferralsFor] = useState<number | null>(null);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
+  // Applications State
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const resetBlogForm = () => {
     setBlogForm({
@@ -218,6 +212,466 @@ export default function Admin() {
     return Math.ceil(words / wordsPerMinute);
   };
 
+  const getTimeAgo = (dateStr: string) => {
+    const days = Math.floor(
+      (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 3600 * 24)
+    );
+    if (days < 1) return "Today";
+    if (days === 1) return "Yesterday";
+    return `${days} days ago`;
+  };
+
+  useEffect(() => {
+    if (activeTab === "blogs") {
+      fetchBlogs();
+    } else if (activeTab === "jobs") {
+      fetchJobs();
+    } else if (activeTab === "applications") {
+      fetchApps();
+    }
+  }, [activeTab]);
+
+  const fetchBlogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const posts = (data || []).map((doc: any) => ({
+        id: doc.id,
+        title: doc.title,
+        excerpt: doc.excerpt,
+        content: doc.content,
+        author: doc.author,
+        createdAt: doc.created_at,
+        imageUrl: doc.image_url,
+        image: null,
+      }));
+      setBlogsList(posts);
+    } catch (error) {
+      console.error("Failed blogs fetch", error);
+    }
+  };
+
+  const fetchApps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const apps = (data || []).map((doc: any) => ({
+        id: doc.id,
+        studentId: doc.student_id,
+        jobId: doc.job_id,
+        status: doc.status,
+        appliedAt: doc.created_at,
+        fullName: doc.full_name,
+        email: doc.email,
+        phone: doc.phone,
+        department: doc.department,
+        education: doc.education,
+        experienceLevel: doc.experience_level,
+        skills: JSON.stringify(doc.skills), // Convert JSONB to string for UI compatibility if needed
+        bio: doc.bio,
+        portfolioUrl: doc.portfolio_url,
+        cvUrl: doc.cv_url,
+        cvFilename: doc.cv_filename,
+        subscribeToNewsletter: doc.subscribeToNewsletter,
+      }));
+      setApplications(apps);
+    } catch (error) {
+      console.error("Failed apps fetch", error);
+    }
+  };
+
+  const fetchJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const allJobs: JobPost[] = (data || []).map((doc: any) => ({
+        id: doc.id,
+        title: doc.title,
+        company: doc.company,
+        company_url: doc.company_url,
+        location: doc.location,
+        locationType: doc.location_type,
+        internshipType: doc.internship_type,
+        salary_min: doc.salary_min,
+        salary_max: doc.salary_max,
+        equity: doc.equity,
+        tags: doc.tags || [], // JSONB returns array
+        description: doc.description,
+        apply_url: doc.apply_url,
+        status: doc.status,
+        created_at: doc.created_at,
+        duration: doc.duration,
+        academicYear: doc.academic_year,
+        discipline: doc.discipline,
+        compensationType: doc.compensation_type,
+        linkedin_url: doc.linkedin_url,
+        twitter_url: doc.twitter_url,
+        instagram_url: doc.instagram_url,
+        company_description: doc.company_description,
+        admin_rating: doc.admin_rating,
+        admin_comments: doc.admin_comments,
+      }));
+
+      setJobsList(allJobs.filter((j) => j.status === "active"));
+      setPendingJobs(allJobs.filter((j) => j.status === "pending"));
+    } catch (error) {
+      console.error("Failed to fetch jobs", error);
+    }
+  };
+
+  const handleApproveJob = async (
+    id: string,
+    rating?: number,
+    comments?: string
+  ) => {
+    try {
+      // If we are just approving via the simple button, we might not have rating/comments
+      // But let's support them if passed (UI might need updating to pass them)
+      const updateData: any = { status: "active" };
+      if (rating !== undefined) updateData.admin_rating = rating;
+      if (comments !== undefined) updateData.admin_comments = comments;
+
+      const { error } = await supabase
+        .from("jobs")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      alert("Job Approved! ✅");
+      fetchJobs();
+    } catch (err) {
+      alert("Error approving job");
+    }
+  };
+
+  const handleRejectJob = async (id: string, comments?: string) => {
+    try {
+      const updateData: any = { status: "rejected" };
+      if (comments) updateData.admin_comments = comments;
+
+      const { error } = await supabase
+        .from("jobs")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+      alert("Job Rejected! ❌");
+      fetchJobs();
+    } catch (e) {
+      alert("Error rejecting job");
+    }
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    if (!confirm("Delete this job permanently?")) return;
+    try {
+      const { error } = await supabase.from("jobs").delete().eq("id", id);
+      if (error) throw error;
+      fetchJobs();
+    } catch (e) {
+      alert("Error deleting job");
+    }
+  };
+  const handleLogin = async () => {
+    // Determine if user is authorized. For now, simple password check against env or hardcoded.
+    // Ideally use Appwrite Account session.
+    // For this migration, we'll keep the password gate but rely on Appwrite for data.
+    // Or we can just pretend 'admin' is the password.
+    if (password === "admin") {
+      // Replace with better check later
+      setIsAuthenticated(true);
+      setStoredPassword(password);
+      setPassword("");
+      fetchApps(); // Initial fetch
+    } else {
+      setLoginError("Invalid password");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setStoredPassword("");
+    setApplications([]);
+  };
+
+  const deleteApplication = async (appId: string) => {
+    if (!window.confirm("ARE YOU SURE YOU WANT TO DELETE THIS APPLICATION?"))
+      return;
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .delete()
+        .eq("id", appId);
+
+      if (error) throw error;
+
+      setApplications(applications.filter((a) => a.id !== appId));
+    } catch (error) {
+      console.error("Failed to delete application", error);
+      alert("Failed to delete application");
+    }
+  };
+
+  const deleteAllApplications = async () => {
+    if (
+      !window.confirm(
+        "WARNING: THIS WILL DELETE ALL APPLICATIONS. THIS ACTION CANNOT BE UNDONE. CONTINUE?"
+      )
+    )
+      return;
+
+    alert("Bulk delete not fully implemented in this version for safety.");
+  };
+
+  // Helper to parse skills from JSON string
+  const parseSkills = (skillsJson: string | undefined): string[] => {
+    if (!skillsJson) return [];
+    try {
+      return JSON.parse(skillsJson);
+    } catch (e) {
+      // Handle case where it might already be an object or invalid
+      if (typeof skillsJson === "object") return skillsJson as string[];
+      return [];
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString();
+  };
+
+  const handleBlogSubmit = async () => {
+    if (!blogForm.title || !blogForm.content) {
+      alert("Please fill in Title and Content");
+      return;
+    }
+
+    setIsSubmittingBlog(true);
+    try {
+      let imageUrl =
+        editingBlogId && (blogForm as any).imageUrl
+          ? (blogForm as any).imageUrl
+          : null;
+
+      // Handle Image Upload
+      if (blogForm.image && blogForm.image instanceof File) {
+        try {
+          const fileExt = blogForm.image.name.split(".").pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { data, error } = await supabase.storage
+            .from("blog-images")
+            .upload(filePath, blogForm.image);
+
+          if (error) throw error;
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("blog-images").getPublicUrl(data.path);
+
+          imageUrl = publicUrl;
+        } catch (e) {
+          console.error("Image upload failed", e);
+          alert("Image upload failed, proceeding without image update.");
+        }
+      }
+
+      const payload: any = {
+        title: blogForm.title,
+        excerpt: blogForm.excerpt,
+        content: blogForm.content,
+        author: blogForm.author,
+        image_url: imageUrl,
+      };
+
+      if (editingBlogId) {
+        // Update
+        const { error } = await supabase
+          .from("blog_posts")
+          .update(payload)
+          .eq("id", editingBlogId);
+        if (error) throw error;
+        alert("Blog Updated! 📝");
+      } else {
+        // Create
+        const { error } = await supabase.from("blog_posts").insert([payload]);
+        if (error) throw error;
+        alert("Blog Published! 🚀");
+      }
+
+      resetBlogForm();
+      fetchBlogs();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save blog post");
+    } finally {
+      setIsSubmittingBlog(false);
+    }
+  };
+
+  const handleEditBlog = (post: BlogPost) => {
+    setBlogForm({
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      author: post.author,
+      image: null,
+      imageUrl: post.imageUrl,
+    } as any);
+    setEditingBlogId(post.id || null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    try {
+      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+      if (error) throw error;
+      fetchBlogs();
+    } catch (e) {
+      alert("Failed to delete");
+    }
+  };
+
+  // JOB HANDLERS
+  const handleJobSubmit = async () => {
+    if (!jobForm.title || !jobForm.company) {
+      alert("Title and Company are required.");
+      return;
+    }
+    setIsSubmittingJob(true);
+    try {
+      const payload: any = {
+        title: jobForm.title,
+        company: jobForm.company,
+        company_url: jobForm.company_url,
+        location: jobForm.location,
+        location_type: jobForm.locationType || "Remote",
+        internship_type: jobForm.internshipType || "Summer Internship",
+        salary_min: Number(jobForm.salary_min),
+        salary_max: Number(jobForm.salary_max),
+        equity: jobForm.equity,
+        tags: jobForm.tags, // JSONB accepts array
+        description: jobForm.description,
+        company_description: jobForm.company_description,
+        apply_url: jobForm.apply_url,
+        academic_year: jobForm.academicYear,
+        compensation_type: jobForm.compensationType,
+        linkedin_url: jobForm.linkedin_url,
+        twitter_url: jobForm.twitter_url,
+        instagram_url: jobForm.instagram_url,
+        duration: jobForm.duration,
+        discipline: jobForm.discipline,
+      };
+
+      if (editingJobId) {
+        const { error } = await supabase
+          .from("jobs")
+          .update(payload)
+          .eq("id", editingJobId);
+
+        if (error) throw error;
+        alert("Job Updated! 💼");
+      } else {
+        payload.status = "active";
+        const { error } = await supabase.from("jobs").insert([payload]);
+
+        if (error) throw error;
+        alert("Job Posted! 💼");
+      }
+
+      setJobForm({
+        title: "",
+        company: "",
+        company_url: "",
+        location: "REMOTE",
+        locationType: "Remote",
+        salary_min: 0,
+        salary_max: 0,
+        equity: "",
+        tags: [],
+        description: "",
+        company_description: "",
+        apply_url: "",
+        linkedin_url: "",
+        twitter_url: "",
+        instagram_url: "",
+        academicYear: "Any Year",
+        compensationType: "Paid Stipend",
+        internshipType: "Summer Internship",
+        duration: "3 Months",
+        discipline: "Other",
+      });
+      setEditingJobId(null);
+      fetchJobs();
+    } catch (error) {
+      console.error(error);
+      alert("Error posting job");
+    } finally {
+      setIsSubmittingJob(false);
+    }
+  };
+
+  const handleEditJob = (job: JobPost) => {
+    setJobForm({
+      ...job,
+      tags: Array.isArray(job.tags) ? job.tags : [],
+      location: job.location || "",
+      locationType: job.locationType || "Remote",
+      internshipType: job.internshipType || "Summer Internship",
+      duration: job.duration || "3 Months",
+      academicYear: job.academicYear || "Any Year",
+      discipline: job.discipline || "Other",
+      compensationType: job.compensationType || "Paid Stipend",
+      linkedin_url: job.linkedin_url || "",
+      twitter_url: job.twitter_url || "",
+      instagram_url: job.instagram_url || "",
+      company_description: job.company_description || "",
+    } as any);
+    setEditingJobId(job.id || null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditJob = () => {
+    setJobForm({
+      title: "",
+      company: "",
+      company_url: "",
+      location: "REMOTE",
+      locationType: "Remote",
+      salary_min: 0,
+      salary_max: 0,
+      equity: "",
+      tags: [],
+      description: "",
+      company_description: "",
+      apply_url: "",
+      linkedin_url: "",
+      twitter_url: "",
+      instagram_url: "",
+      academicYear: "Any Year",
+      compensationType: "Paid Stipend",
+      internshipType: "Summer Internship",
+    });
+    setEditingJobId(null);
+  };
+
   const renderBlogPreview = () => (
     <div className="space-y-6 animate-fade-in">
       <div className="bg-red-500 text-white font-black text-center p-2 text-[10px] tracking-widest border-4 border-black border-t-0 -mt-8 relative z-10">
@@ -228,35 +682,23 @@ export default function Admin() {
         title={`PREVIEW_NODE_00${editingBlogId || "NEW"}`}
         className="bg-white p-0 relative"
       >
-        {/* Full fidelity preview header */}
         <div className="border-b-8 border-black">
-          {/* Local Image Preview */}
           <div className="border-b-4 border-black bg-gray-100 flex items-center justify-center min-h-[200px] overflow-hidden">
-            {blogForm.image ? (
+            {blogForm.image && blogForm.image instanceof File ? (
               <img
-                src={
-                  typeof blogForm.image === "string"
-                    ? blogForm.image
-                    : URL.createObjectURL(blogForm.image)
-                }
+                src={URL.createObjectURL(blogForm.image)}
                 className="w-full object-cover max-h-[400px]"
                 alt="Preview"
               />
-            ) : editingBlogId ? (
+            ) : (blogForm as any).imageUrl ? (
               <img
-                src={`${apiBase}/api/blogs/${editingBlogId}/image`}
+                src={(blogForm as any).imageUrl}
                 className="w-full object-cover max-h-[400px]"
-                alt="Current"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
+                alt="Featured"
               />
             ) : (
-              <div className="flex flex-col items-center gap-2 opacity-20">
-                <ImageIcon size={48} />
-                <span className="text-xs font-black uppercase">
-                  NO_IMAGE_UPLOADED
-                </span>
+              <div className="p-8 text-center text-gray-400 font-mono text-sm uppercase">
+                NO_DATA_STREAM // INSERT_IMAGE
               </div>
             )}
           </div>
@@ -317,409 +759,6 @@ export default function Admin() {
       </div>
     </div>
   );
-
-  const getTimeAgo = (dateStr: string) => {
-    const days = Math.floor(
-      (new Date().getTime() - new Date(dateStr).getTime()) / (1000 * 3600 * 24)
-    );
-    if (days < 1) return "Today";
-    if (days === 1) return "Yesterday";
-    return `${days} days ago`;
-  };
-
-  // Fetch blogs when tab changes
-  useEffect(() => {
-    if (activeTab === "blogs") {
-      fetchBlogs();
-    } else if (activeTab === "jobs") {
-      fetchJobs();
-      fetchReferrals();
-    }
-  }, [activeTab]);
-
-  const fetchReferrals = async () => {
-    try {
-      const response = await fetch(`${apiBase}/api/admin/referrals`);
-      if (response.ok) {
-        const data = await response.json();
-        setReferrals(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch referrals", error);
-    }
-  };
-
-  const fetchJobs = async () => {
-    try {
-      // Fetch Active Jobs
-      const response = await fetch(`${apiBase}/api/jobs`);
-      if (response.ok) {
-        const data = await response.json();
-        setJobsList(data);
-      }
-
-      // Fetch Pending Jobs (Authenticated)
-      const pendingResponse = await fetch(`${apiBase}/api/admin/jobs/pending`, {
-        headers: { "Content-Type": "application/json" }, // Should pass auth here realistically if we implemented middleware
-      });
-      if (pendingResponse.ok) {
-        const pendingData = await pendingResponse.json();
-        setPendingJobs(pendingData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch jobs", error);
-    }
-  };
-
-  const handleApproveJob = async (id: number) => {
-    try {
-      const review = reviews[id] || { rating: 0, comments: "" };
-      const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "active",
-          password: storedPassword,
-          rating: review.rating,
-          comments: review.comments,
-        }),
-      });
-      if (res.ok) {
-        alert("Job Approved! ✅");
-        fetchJobs();
-      } else {
-        alert("Failed to approve");
-      }
-    } catch (err) {
-      alert("Error approving job");
-    }
-  };
-
-  const handleRejectJob = async (id: number) => {
-    if (!confirm("Reject and remove this job submission?")) return;
-    try {
-      const review = reviews[id] || { rating: 0, comments: "" };
-      const res = await fetch(`${apiBase}/api/admin/jobs/${id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "rejected",
-          password: storedPassword,
-          comments: review.comments,
-        }),
-      });
-      if (res.ok) {
-        alert("Job Rejected ❌");
-        fetchJobs();
-      } else {
-        alert("Failed to reject");
-      }
-    } catch (err) {
-      alert("Error rejecting job");
-    }
-  };
-
-  const fetchBlogs = async () => {
-    try {
-      const response = await fetch(`${apiBase}/api/blogs`);
-      if (response.ok) {
-        const data = await response.json();
-        setBlogsList(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch blogs", error);
-    }
-  };
-
-  const handleLogin = async () => {
-    setLoginError(null);
-    try {
-      const response = await fetch(`${apiBase}/api/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setIsAuthenticated(true);
-        setStoredPassword(password);
-        setPassword("");
-        fetchApplications();
-      } else {
-        setLoginError(data.error || "Invalid password");
-      }
-    } catch (err) {
-      setLoginError("Failed to authenticate");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setStoredPassword("");
-    setApplications([]);
-  };
-
-  const fetchApplications = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${apiBase}/api/applications`);
-      if (!response.ok) throw new Error("Failed to fetch");
-      const data = await response.json();
-      setApplications(data);
-    } catch (err) {
-      setError("Failed to load applications");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteApplication = async (id: number) => {
-    if (!confirm("Delete this application?")) return;
-    try {
-      const response = await fetch(`${apiBase}/api/applications/${id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: storedPassword }),
-      });
-      if (response.ok) {
-        setApplications(applications.filter((a) => a.id !== id));
-      } else {
-        alert("Failed to delete");
-      }
-    } catch (err) {
-      alert("Failed to delete");
-    }
-  };
-
-  const deleteAllApplications = async () => {
-    if (!confirm("DELETE ALL APPLICATIONS? This cannot be undone!")) return;
-    if (!confirm("Are you REALLY sure?")) return;
-    try {
-      const response = await fetch(`${apiBase}/api/applications`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: storedPassword }),
-      });
-      if (response.ok) {
-        setApplications([]);
-      } else {
-        alert("Failed to delete all");
-      }
-    } catch (err) {
-      alert("Failed to delete all");
-    }
-  };
-
-  const parseSkills = (skills: string): string[] => {
-    try {
-      return JSON.parse(skills);
-    } catch {
-      return skills ? [skills] : [];
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
-
-  const handleBlogSubmit = async () => {
-    if (!blogForm.title || !blogForm.content) {
-      alert("Title and Content are required");
-      return;
-    }
-
-    setIsSubmittingBlog(true);
-    try {
-      const formData = new FormData();
-      formData.append("title", blogForm.title);
-      formData.append("excerpt", blogForm.excerpt);
-      formData.append("content", blogForm.content);
-      formData.append("author", blogForm.author);
-      if (blogForm.image) {
-        formData.append("image", blogForm.image);
-      }
-
-      const url = editingBlogId
-        ? `${apiBase}/api/blogs/${editingBlogId}`
-        : `${apiBase}/api/blogs`;
-
-      const method = editingBlogId ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method: method,
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert(editingBlogId ? "Blog Updated! 📝" : "Blog Post Created! 🔥");
-        resetBlogForm();
-        fetchBlogs();
-      } else {
-        alert("Failed to save post");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error saving post");
-    } finally {
-      setIsSubmittingBlog(false);
-    }
-  };
-
-  const handleEditBlog = (blog: BlogPost) => {
-    setBlogForm({
-      title: blog.title,
-      excerpt: blog.excerpt,
-      content: blog.content,
-      author: blog.author,
-      image: null, // Reset image input as we can't prefill file input
-    });
-    setEditingBlogId(blog.id!);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDeleteBlog = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    try {
-      await fetch(`${apiBase}/api/blogs/${id}`, { method: "DELETE" });
-      fetchBlogs();
-    } catch (error) {
-      alert("Failed to delete post");
-    }
-  };
-
-  // JOB HANDLERS
-  const handleJobSubmit = async () => {
-    if (!jobForm.title || !jobForm.company || !jobForm.description) {
-      alert("Title, Company, and Description are required.");
-      return;
-    }
-    setIsSubmittingJob(true);
-    try {
-      const url = editingJobId
-        ? `${apiBase}/api/jobs/${editingJobId}`
-        : `${apiBase}/api/jobs`;
-      const method = editingJobId ? "PUT" : "POST";
-
-      const payload = {
-        ...jobForm,
-        password: storedPassword, // Required for PUT (Admin check)
-      };
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (response.ok) {
-        alert(editingJobId ? "Job Updated! 💼" : "Job Posted! 💼");
-        setJobForm({
-          title: "",
-          company: "",
-          company_url: "",
-          location: "REMOTE",
-          locationType: "Remote",
-          salary_min: 0,
-          salary_max: 0,
-          equity: "",
-          tags: [],
-          description: "",
-          company_description: "",
-          apply_url: "",
-          linkedin_url: "",
-          twitter_url: "",
-          instagram_url: "",
-        });
-        setEditingJobId(null);
-        fetchJobs();
-      } else {
-        alert("Failed to save job");
-      }
-    } catch (error) {
-      alert("Error posting job");
-    } finally {
-      setIsSubmittingJob(false);
-    }
-  };
-
-  const handleEditJob = (job: JobPost) => {
-    setJobForm({
-      ...job,
-      tags: Array.isArray(job.tags) ? job.tags : [],
-      location: job.location || "",
-      locationType: job.location_type || "Remote",
-      internship_type: job.internship_type || "Summer Internship",
-      duration: job.duration || "3 Months",
-      academic_year: job.academic_year || "Any Year",
-      discipline: job.discipline || "Other",
-      compensation_type: job.compensation_type || "Paid Stipend",
-      linkedin_url: (job as any).linkedin_url || "",
-      twitter_url: (job as any).twitter_url || "",
-      instagram_url: (job as any).instagram_url || "",
-      company_description: job.company_description || "",
-    });
-    setEditingJobId(job.id!);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const cancelEditJob = () => {
-    setJobForm({
-      title: "",
-      company: "",
-      company_url: "",
-      location: "REMOTE",
-      locationType: "Remote",
-      salary_min: 0,
-      salary_max: 0,
-      equity: "",
-      tags: [],
-      description: "",
-      company_description: "",
-      apply_url: "",
-      linkedin_url: "",
-      twitter_url: "",
-      instagram_url: "",
-    });
-    setEditingJobId(null);
-  };
-
-  const handleDeleteJob = async (id: number) => {
-    if (!confirm("Delete this job listing?")) return;
-    try {
-      await fetch(`${apiBase}/api/jobs/${id}`, { method: "DELETE" });
-      fetchJobs();
-    } catch (error) {
-      alert("Failed to delete job");
-    }
-  };
-
-  const handleResequence = async () => {
-    if (
-      !confirm(
-        "CONFIRM DATABASE RENORMALIZATION? THIS WILL RESET ALL IDS TO BE SEQUENTIAL (1, 2, 3...)."
-      )
-    ) {
-      return;
-    }
-    try {
-      const response = await fetch(`${apiBase}/api/admin/resequence`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: storedPassword || password }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert("DATABASE RENORMALIZED. IDS ARE NOW SEQUENTIAL.");
-        fetchBlogs();
-      } else {
-        alert("FAILED TO RENORMALIZE: " + data.error);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("ERROR RENORMALIZING");
-    }
-  };
 
   // Login Screen
   if (!isAuthenticated) {
@@ -840,28 +879,32 @@ export default function Admin() {
                 TOTAL_APPLICANTS
               </p>
             </div>
-            <div className="border-4 border-black bg-brutal-yellow p-6 shadow-solid-sm">
+            <div className="border-4 border-black bg-brutal-green p-6 shadow-solid-sm">
               <p className="text-4xl font-black text-black">
-                {applications.filter((a) => a.subscribeToNewsletter).length}
+                {applications.filter((a) => a.status === "accepted").length}
               </p>
               <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
-                NEWSLETTER_SUBS
+                ACCEPTED
               </p>
             </div>
             <div className="border-4 border-black bg-brutal-red text-white p-6 shadow-solid-sm">
               <p className="text-4xl font-black">
-                {applications.filter((a) => a.cvFilename).length}
+                {applications.filter((a) => a.status === "rejected").length}
               </p>
               <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
-                VERIFIED_CVs
+                REJECTED
               </p>
             </div>
-            <div className="border-4 border-black bg-white p-6 shadow-solid-sm">
+            <div className="border-4 border-black bg-brutal-yellow p-6 shadow-solid-sm">
               <p className="text-4xl font-black">
-                {new Set(applications.map((a) => a.department)).size}
+                {
+                  applications.filter(
+                    (a) => !a.status || a.status === "pending"
+                  ).length
+                }
               </p>
               <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
-                DEPT_COVERAGE
+                PENDING
               </p>
             </div>
           </>
@@ -905,10 +948,10 @@ export default function Admin() {
                 PENDING_APPROVAL
               </p>
             </div>
-            <div className="border-4 border-black bg-white p-6 shadow-solid-sm">
-              <p className="text-4xl font-black">{referrals.length}</p>
+            <div className="border-4 border-black bg-white p-6 shadow-solid-sm text-gray-400">
+              <p className="text-4xl font-black">0</p>
               <p className="text-[10px] uppercase font-black tracking-widest mt-1 opacity-70">
-                TOTAL_REFERRALS
+                REFERRALS (N/A)
               </p>
             </div>
             <div className="border-4 border-black bg-black text-white p-6 shadow-solid-sm">
@@ -932,7 +975,7 @@ export default function Admin() {
 
       {/* Controls */}
       <div className="max-w-6xl mx-auto mb-6 flex flex-wrap gap-4">
-        <BrutalButton onClick={fetchApplications} disabled={loading}>
+        <BrutalButton onClick={fetchApps} disabled={loading}>
           <RefreshCw
             className={`inline mr-2 ${loading ? "animate-spin" : ""}`}
             size={16}
@@ -946,15 +989,6 @@ export default function Admin() {
             className="bg-brutal-red text-white border-4 border-black px-4 py-2 font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
           >
             <Trash2 size={16} /> DELETE ALL
-          </button>
-        )}
-
-        {activeTab === "blogs" && (
-          <button
-            onClick={handleResequence}
-            className="bg-brutal-yellow text-black border-4 border-black px-4 py-2 font-bold hover:bg-black hover:text-white transition-colors flex items-center gap-2"
-          >
-            <RefreshCw size={16} /> NORMALIZE DB
           </button>
         )}
       </div>
@@ -993,25 +1027,57 @@ export default function Admin() {
                       }
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black text-white flex items-center justify-center font-black text-xl">
-                          {app.fullName.charAt(0).toUpperCase()}
+                        <div className="w-12 h-12 bg-black text-white flex items-center justify-center font-black text-xl uppercase">
+                          {app.fullName ? app.fullName.substring(0, 2) : "?"}
                         </div>
                         <div>
-                          <h3 className="font-black text-lg uppercase">
-                            {app.fullName}
+                          <h3 className="font-black text-lg uppercase truncate max-w-[200px]">
+                            {app.fullName ||
+                              (app.studentId
+                                ? `STUDENT: ${app.studentId}`
+                                : "UNKNOWN CANDIDATE")}
                           </h3>
                           <p className="text-sm text-gray-600 flex items-center gap-2">
-                            <Mail size={12} /> {app.email}
+                            {app.department && (
+                              <span className="font-bold">
+                                {app.department} //{" "}
+                              </span>
+                            )}
+                            <Briefcase size={12} /> Job ID: {app.jobId}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="bg-brutal-blue text-white px-2 py-1 text-xs font-bold uppercase">
-                          {app.department}
+                        <span
+                          className={`px-2 py-1 text-xs font-bold uppercase ${
+                            app.status === "accepted"
+                              ? "bg-brutal-green"
+                              : app.status === "rejected"
+                              ? "bg-brutal-red text-white"
+                              : "bg-brutal-yellow"
+                          }`}
+                        >
+                          {app.status || "PENDING"}
                         </span>
                         <span className="text-xs text-gray-500 hidden md:block">
-                          {formatDate(app.submittedAt)}
+                          {app.appliedAt ? formatDate(app.appliedAt) : "N/A"}
                         </span>
+                        {app.cvFileId && (
+                          <a
+                            href={
+                              supabase.storage
+                                .from(SUPABASE_CONFIG.storageBucketResumes)
+                                .getPublicUrl(app.cvFileId).data.publicUrl
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-2 hover:bg-black hover:text-white transition-colors border-2 border-transparent hover:border-black"
+                            title="Download CV"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Download size={16} />
+                          </a>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1038,50 +1104,16 @@ export default function Admin() {
                           <div className="space-y-3">
                             <div>
                               <p className="text-xs font-bold uppercase text-gray-500">
-                                Phone
+                                Application ID
                               </p>
-                              <p className="flex items-center gap-2">
-                                <Phone size={14} /> {app.phone || "N/A"}
-                              </p>
+                              <p className="font-mono text-xs">{app.id}</p>
                             </div>
                             <div>
                               <p className="text-xs font-bold uppercase text-gray-500">
-                                Experience
+                                Student ID
                               </p>
-                              <p className="flex items-center gap-2">
-                                <Briefcase size={14} />{" "}
-                                {app.experienceLevel.toUpperCase()}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase text-gray-500">
-                                Skills
-                              </p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {parseSkills(app.skills).map((skill, i) => (
-                                  <span
-                                    key={i}
-                                    className="bg-black text-white px-2 py-1 text-xs"
-                                  >
-                                    {skill}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase text-gray-500">
-                                Newsletter
-                              </p>
-                              <p
-                                className={
-                                  app.subscribeToNewsletter
-                                    ? "text-green-600 font-bold"
-                                    : "text-gray-400"
-                                }
-                              >
-                                {app.subscribeToNewsletter
-                                  ? "✓ SUBSCRIBED"
-                                  : "Not subscribed"}
+                              <p className="font-mono text-xs">
+                                {app.studentId}
                               </p>
                             </div>
                           </div>
@@ -1090,44 +1122,20 @@ export default function Admin() {
                           <div className="space-y-3">
                             <div>
                               <p className="text-xs font-bold uppercase text-gray-500">
-                                Bio
+                                Job ID
                               </p>
-                              <p className="text-sm">
-                                {app.bio || "No bio provided"}
-                              </p>
+                              <p className="font-mono text-xs">{app.jobId}</p>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase text-gray-500">
-                                Portfolio
+                            <div className="p-4 bg-gray-100 border-2 border-black text-xs font-mono">
+                              <p className="font-bold mb-2">SNAPSHOT DATA:</p>
+                              <p>EMAIL: {app.email || "N/A"}</p>
+                              <p>PHONE: {app.phone || "N/A"}</p>
+                              <p>EXP: {app.experienceLevel || "N/A"}</p>
+                              <p>BIO: {app.bio || "N/A"}</p>
+                              <p className="truncate">
+                                PORTFOLIO: {app.portfolioUrl || "N/A"}
                               </p>
-                              {app.portfolioUrl ? (
-                                <a
-                                  href={app.portfolioUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-brutal-blue underline hover:text-brutal-red"
-                                >
-                                  {app.portfolioUrl}
-                                </a>
-                              ) : (
-                                <p className="text-gray-400">No portfolio</p>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase text-gray-500">
-                                CV
-                              </p>
-                              {app.cvFilename ? (
-                                <a
-                                  href={`${apiBase}/api/cv/${app.id}`}
-                                  className="flex items-center gap-2 bg-brutal-yellow px-3 py-2 font-bold hover:bg-brutal-red hover:text-white transition-colors inline-block"
-                                >
-                                  <Download size={14} />
-                                  {app.cvFilename}
-                                </a>
-                              ) : (
-                                <p className="text-gray-400">No CV uploaded</p>
-                              )}
+                              <p>SKILLS: {app.skills || "N/A"}</p>
                             </div>
                           </div>
                         </div>
@@ -1331,15 +1339,17 @@ export default function Admin() {
                   >
                     <div className="flex gap-4">
                       <div className="w-16 h-16 bg-gray-200 border-2 border-black shrink-0 overflow-hidden hidden sm:block">
-                        <img
-                          src={`${apiBase}/api/blogs/${blog.id}/image`}
-                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
-                          onError={(e) => {
-                            (
-                              e.target as HTMLImageElement
-                            ).parentElement!.style.display = "none";
-                          }}
-                        />
+                        {blog.imageUrl ? (
+                          <img
+                            src={blog.imageUrl}
+                            alt={blog.title}
+                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-brutal-yellow flex items-center justify-center font-black text-xs">
+                            IMG
+                          </div>
+                        )}
                       </div>
                       <div>
                         <h3 className="font-black text-xl uppercase tracking-tighter">
@@ -1367,7 +1377,7 @@ export default function Admin() {
                         <Edit size={14} /> MODIFY
                       </button>
                       <button
-                        onClick={() => handleDeleteBlog(blog.id!)}
+                        onClick={() => handleDeleteBlog(blog.id)}
                         className="bg-brutal-red text-white px-4 py-2 font-black text-xs uppercase hover:bg-black border-2 border-black transition-all flex items-center gap-2 h-fit"
                       >
                         <Trash2 size={14} /> PURGE
@@ -1496,11 +1506,11 @@ export default function Admin() {
                       Internship Type
                     </label>
                     <select
-                      value={jobForm.internship_type}
+                      value={jobForm.internshipType}
                       onChange={(e) =>
                         setJobForm({
                           ...jobForm,
-                          internship_type: e.target.value,
+                          internshipType: e.target.value,
                         })
                       }
                       className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
@@ -1538,11 +1548,11 @@ export default function Admin() {
                       Academic Year
                     </label>
                     <select
-                      value={jobForm.academic_year}
+                      value={jobForm.academicYear}
                       onChange={(e) =>
                         setJobForm({
                           ...jobForm,
-                          academic_year: e.target.value,
+                          academicYear: e.target.value,
                         })
                       }
                       className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
@@ -1580,11 +1590,11 @@ export default function Admin() {
                       Compensation Type
                     </label>
                     <select
-                      value={jobForm.compensation_type}
+                      value={jobForm.compensationType}
                       onChange={(e) =>
                         setJobForm({
                           ...jobForm,
-                          compensation_type: e.target.value,
+                          compensationType: e.target.value,
                         })
                       }
                       className="w-full border-4 border-black p-3 font-mono focus:outline-none focus:border-brutal-blue bg-white"
@@ -1711,14 +1721,14 @@ export default function Admin() {
                       <div>
                         <p>
                           <strong>Location:</strong> {job.location} (
-                          {job.location_type})
+                          {job.locationType})
                         </p>
                         <p>
-                          <strong>Type:</strong> {job.internship_type} |{" "}
+                          <strong>Type:</strong> {job.internshipType} |{" "}
                           {job.duration}
                         </p>
                         <p>
-                          <strong>Comp:</strong> {job.compensation_type}
+                          <strong>Comp:</strong> {job.compensationType}
                         </p>
                         <p>
                           <strong>Stipend:</strong> ₹{job.salary_min} - ₹
@@ -1730,7 +1740,7 @@ export default function Admin() {
                           <strong>Discipline:</strong> {job.discipline}
                         </p>
                         <p>
-                          <strong>Year:</strong> {job.academic_year}
+                          <strong>Year:</strong> {job.academicYear}
                         </p>
                         <p>
                           <strong>Equity:</strong> {job.equity || "None"}
@@ -1766,12 +1776,12 @@ export default function Admin() {
                             min="1"
                             max="5"
                             className="w-full text-black p-2 font-bold"
-                            value={reviews[job.id!]?.rating || 0}
+                            value={reviews[job.id]?.rating || 0}
                             onChange={(e) =>
                               setReviews({
                                 ...reviews,
-                                [job.id!]: {
-                                  ...reviews[job.id!],
+                                [job.id]: {
+                                  ...reviews[job.id],
                                   rating: parseInt(e.target.value),
                                 },
                               })
@@ -1785,12 +1795,12 @@ export default function Admin() {
                           <textarea
                             className="w-full text-black p-2 text-sm"
                             placeholder="Add notes..."
-                            value={reviews[job.id!]?.comments || ""}
+                            value={reviews[job.id]?.comments || ""}
                             onChange={(e) =>
                               setReviews({
                                 ...reviews,
-                                [job.id!]: {
-                                  ...reviews[job.id!],
+                                [job.id]: {
+                                  ...reviews[job.id],
                                   comments: e.target.value,
                                 },
                               })
@@ -1800,13 +1810,13 @@ export default function Admin() {
                       </div>
                       <div className="flex gap-4">
                         <button
-                          onClick={() => handleApproveJob(job.id!)}
+                          onClick={() => handleApproveJob(job.id)}
                           className="flex-1 bg-brutal-green text-black font-black uppercase py-3 hover:bg-white transition-colors"
                         >
                           Approve & Publish
                         </button>
                         <button
-                          onClick={() => handleRejectJob(job.id!)}
+                          onClick={() => handleRejectJob(job.id)}
                           className="flex-1 bg-brutal-red text-white font-black uppercase py-3 hover:bg-black border-2 border-white transition-colors"
                         >
                           Reject
@@ -1854,69 +1864,15 @@ export default function Admin() {
                         >
                           <Edit size={16} /> EDIT
                         </button>
+                        {/* Referrals Logic Removed for Appwrite Migration */}
                         <button
-                          onClick={() =>
-                            setShowReferralsFor(
-                              showReferralsFor === job.id ? null : job.id!
-                            )
-                          }
-                          className="bg-blue-600 text-white px-4 py-2 font-bold hover:bg-black border-2 border-black transition-colors flex items-center gap-2 h-fit mb-2"
-                        >
-                          <Users size={16} /> REFERRALS (
-                          {referrals.filter((r) => r.job_id === job.id).length})
-                        </button>
-                        <button
-                          onClick={() => handleDeleteJob(job.id!)}
+                          onClick={() => handleDeleteJob(job.id)}
                           className="bg-brutal-red text-white px-4 py-2 font-bold hover:bg-black transition-colors flex items-center gap-2 h-fit"
                         >
                           <Trash2 size={16} /> DELETE
                         </button>
                       </div>
                     </div>
-
-                    {/* REFERRALS EXPAND */}
-                    {showReferralsFor === job.id && (
-                      <div className="bg-gray-100 border-4 border-black p-4 mb-4 -mt-4">
-                        <h4 className="font-bold border-b-2 border-black mb-2">
-                          CANDIDATES
-                        </h4>
-                        {referrals.filter((r) => r.job_id === job.id).length ===
-                        0 ? (
-                          <p className="opacity-50">No referrals yet.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {referrals
-                              .filter((r) => r.job_id === job.id)
-                              .map((ref) => (
-                                <div
-                                  key={ref.id}
-                                  className="bg-white border-2 border-black p-2 text-sm"
-                                >
-                                  <p>
-                                    <strong>{ref.name}</strong> ({ref.email})
-                                  </p>
-                                  <div className="flex gap-2 text-xs">
-                                    <a
-                                      href={ref.linkedin}
-                                      target="_blank"
-                                      className="underline text-blue-600"
-                                    >
-                                      LinkedIn
-                                    </a>
-                                    <span>•</span>
-                                    <span>
-                                      {new Date(
-                                        ref.created_at
-                                      ).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                  <p className="mt-1 italic">"{ref.why_me}"</p>
-                                </div>
-                              ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </React.Fragment>
                 ))}
                 {jobsList.length === 0 && (

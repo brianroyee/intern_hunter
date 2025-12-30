@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "./lib/supabase";
 import {
   BrutalBox,
   BrutalButton,
@@ -102,6 +104,7 @@ const COMMON_TAGS = [
 ];
 
 export default function PostJobPage() {
+  const { user } = useAuth();
   const [jobForm, setJobForm] = useState({
     title: "",
     company: "",
@@ -341,7 +344,6 @@ export default function PostJobPage() {
     setIsSubmitting(true);
     setError(null);
     try {
-      // Basic validation
       if (
         !jobForm.title ||
         !jobForm.company ||
@@ -350,39 +352,51 @@ export default function PostJobPage() {
         !jobForm.apply_url ||
         !jobForm.linkedin_url
       ) {
-        throw new Error(
-          "Missing required fields: Title, Company, Job Description, Company Description, Apply URL, LinkedIn URL"
-        );
+        throw new Error("Missing required fields");
       }
 
-      const payload = {
-        ...jobForm,
-        stipend_min: parseInt(jobForm.stipend_min) || 0,
-        stipend_max: parseInt(jobForm.stipend_max) || 0,
-        // Combine selected checkbox tags with any custom comma-separated tags
-        tags: [
-          ...jobForm.selectedTags,
-          ...jobForm.customTags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        ],
-      };
+      const allTags = [
+        ...jobForm.selectedTags,
+        ...jobForm.customTags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      ];
 
-      const response = await fetch(`${apiBase}/api/jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const { error } = await supabase.from("jobs").insert([
+        {
+          creator_id: user?.id,
+          title: jobForm.title,
+          company: jobForm.company,
+          company_url: jobForm.company_url,
+          linkedin_url: jobForm.linkedin_url,
+          twitter_url: jobForm.twitter_url,
+          instagram_url: jobForm.instagram_url,
+          location: jobForm.location || "Remote",
+          location_type: jobForm.locationType,
+          internship_type: jobForm.internshipType,
+          duration: jobForm.duration,
+          academic_year: jobForm.academicYear,
+          discipline: jobForm.discipline,
+          compensation_type: jobForm.compensationType,
+          salary_min: parseInt(jobForm.stipend_min) || 0,
+          salary_max: parseInt(jobForm.stipend_max) || 0,
+          equity: jobForm.equity,
+          tags: allTags,
+          description: jobForm.description,
+          company_description: jobForm.company_description,
+          apply_url: jobForm.apply_url,
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to submit internship");
-      }
+      if (error) throw error;
 
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message);
+      console.error("Job save error:", err);
+      setError(err.message || "Failed to submit internship to the network.");
     } finally {
       setIsSubmitting(false);
     }
@@ -402,9 +416,9 @@ export default function PostJobPage() {
             Your internship listing has been submitted for review. Once approved
             by the admins, it will go live on the network for students to apply.
           </p>
-          <Link to="/hire">
-            <BrutalButton className="w-full text-xl py-4">
-              RETURN TO BOARD
+          <Link to="/employer-dashboard">
+            <BrutalButton className="w-full text-xl py-4 bg-brutal-blue text-white">
+              GO_TO_EMPLOYER_DASHBOARD
             </BrutalButton>
           </Link>
         </div>

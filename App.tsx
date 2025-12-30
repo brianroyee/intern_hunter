@@ -9,6 +9,9 @@ import LandingPage from "./LandingPage";
 import ApplyPage from "./ApplyPage";
 import RecruiterPage from "./RecruiterPage";
 import PostJobPage from "./PostJobPage";
+import StudentDashboard from "./StudentDashboard";
+import EmployerDashboard from "./EmployerDashboard";
+import OnboardingPage from "./OnboardingPage";
 import { CandidateProfile, DEPARTMENTS } from "./types";
 import {
   BrutalBox,
@@ -129,6 +132,9 @@ export default function App() {
       <Route path="/apply" element={<ApplyPage />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/hire" element={<RecruiterPage />} />
+      <Route path="/dashboard" element={<StudentDashboard />} />
+      <Route path="/employer-dashboard" element={<EmployerDashboard />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/jobs/:id" element={<JobDetailsPage />} />
       <Route path="/post-job" element={<PostJobPage />} />
       <Route path="/blogs" element={<BlogsPage />} />

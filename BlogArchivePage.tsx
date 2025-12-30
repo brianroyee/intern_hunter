@@ -1,24 +1,26 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BrutalBox, BrutalButton } from "./components/BrutalComponents";
 import { ArrowLeft, BookOpen, Calendar, User, Grid } from "lucide-react";
 
+import { supabase } from "./lib/supabase";
+
 interface BlogPost {
-  id: number;
+  id: string; // Changed from number
   title: string;
   excerpt: string;
+  content: string;
   author: string;
   createdAt: string;
 }
 
 export default function BlogArchivePage() {
-  const [posts, setPosts] = React.useState<BlogPost[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const apiBase = import.meta.env.DEV ? "http://localhost:3000" : "";
-
-  React.useEffect(() => {
-    const cachedPosts = localStorage.getItem("intern_os_blogs");
+  useEffect(() => {
+    // Attempt to load from cache first
+    const cachedPosts = localStorage.getItem("intern_os_blogs_archive");
     if (cachedPosts) {
       try {
         setPosts(JSON.parse(cachedPosts));
@@ -30,20 +32,36 @@ export default function BlogArchivePage() {
 
     const fetchPosts = async () => {
       try {
-        const response = await fetch(`${apiBase}/api/blogs`);
-        if (response.ok) {
-          const data = await response.json();
-          setPosts(data);
-          localStorage.setItem("intern_os_blogs", JSON.stringify(data));
-        }
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const formattedPosts = (data || []).map((doc: any) => ({
+          id: doc.id,
+          title: doc.title,
+          excerpt: doc.excerpt,
+          content: doc.content,
+          author: doc.author,
+          createdAt: doc.created_at,
+          imageBase64: doc.image_url,
+        }));
+
+        setPosts(formattedPosts);
+        localStorage.setItem(
+          "intern_os_blogs_archive",
+          JSON.stringify(formattedPosts)
+        );
       } catch (error) {
-        console.error("Failed to load blogs", error);
+        console.error("Failed to load archive", error);
       } finally {
         setLoading(false);
       }
     };
     fetchPosts();
-  }, [apiBase]);
+  }, []);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString();
@@ -82,7 +100,7 @@ export default function BlogArchivePage() {
             <p className="text-xl font-bold uppercase">NO LOGS FOUND</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post) => (
               <Link
                 key={post.id}
@@ -92,15 +110,17 @@ export default function BlogArchivePage() {
                 <div className="border-4 border-black bg-white h-full transform transition-transform group-hover:-translate-y-2 group-hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                   {/* Image Thumbnail */}
                   <div className="h-48 border-b-4 border-black bg-gray-100 overflow-hidden">
-                    <img
-                      src={`${apiBase}/api/blogs/${post.id}/image`}
-                      alt={post.title}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/400x200?text=NO+IMAGE"; // Fallback
-                      }}
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                    />
+                    {(post as any).imageBase64 ? (
+                      <img
+                        src={(post as any).imageBase64}
+                        alt={post.title}
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center font-black">
+                        NO IMG
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-6 flex flex-col h-[calc(100%-12rem)]">
@@ -111,14 +131,13 @@ export default function BlogArchivePage() {
                     <h2 className="text-2xl font-black uppercase leading-tight mb-4 line-clamp-3 group-hover:text-brutal-blue transition-colors">
                       {post.title}
                     </h2>
-                    <p className="text-sm border-l-4 border-brutal-yellow pl-4 mb-6 line-clamp-3 flex-grow">
+                    <p className="text-sm font-medium line-clamp-3 mb-6 flex-grow">
                       {post.excerpt}
                     </p>
-                    <div className="mt-auto pt-4 border-t-2 border-black border-dashed flex justify-between items-center">
-                      <span className="text-xs font-bold uppercase flex items-center gap-1">
-                        <User size={12} /> {post.author}
+                    <div className="mt-auto">
+                      <span className="inline-block bg-brutal-yellow px-2 py-1 border-2 border-black text-xs font-black uppercase group-hover:bg-black group-hover:text-white transition-colors">
+                        READ_LOG
                       </span>
-                      <span className="font-bold text-sm">READ →</span>
                     </div>
                   </div>
                 </div>
